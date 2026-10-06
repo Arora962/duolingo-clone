@@ -1,6 +1,9 @@
 """Consistent API errors."""
+
 from fastapi import HTTPException
 
-def api_error(status: int, code: str, message: str, **extra):
+
+def api_error(status: int, code: str, message: str, **extra) -> None:
+    """Raise a structured API error."""
     detail = {"code": code, "message": message, **extra}
     raise HTTPException(status_code=status, detail=detail)

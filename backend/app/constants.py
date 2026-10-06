@@ -1,0 +1,7 @@
+"""Application constants shared by services and routers."""
+
+MAX_HEARTS = 5
+HEART_REGEN_MINUTES = 30
+HEART_REFILL_GEM_COST = 100
+GEMS_TREASURE_REWARD = 30
+TIMED_PRACTICE_SECONDS = 180

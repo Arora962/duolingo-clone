@@ -5,11 +5,20 @@ Exercise type mapping:
 - TRANSLATE_WORD_BANK: source_text + tiles as options (answer_order set for correct
   tiles, NULL for distractors) + full valid sentences in accepted_answers.
 - MATCH_PAIRS: 4-5 pairs as options sharing pair_key, one LEFT and one RIGHT each.
-- FILL_IN_BLANK: source_text with "____" + options with is_correct (or accepted_answers if typed).
+- FILL_IN_BLANK: source_text with "____" + options with is_correct (or
+  accepted_answers if typed).
 - TYPE_ANSWER: source_text + accepted_answers.
 """
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+)
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -19,24 +28,46 @@ from app.models.mixins import TimestampMixin
 
 
 def enum_column(enum_cls, length: int):
-    return SAEnum(enum_cls, native_enum=False, create_constraint=True, length=length, nullable=False)
+    """Build a non-native SQLAlchemy enum column for SQLite."""
+    return SAEnum(
+        enum_cls,
+        native_enum=False,
+        create_constraint=True,
+        length=length,
+        nullable=False,
+    )
 
 
 class Course(TimestampMixin, Base):
     """A language course shared by all learners."""
 
     __tablename__ = "courses"
-    __table_args__ = (UniqueConstraint("language_code", name="uq_courses_language_code"),)
+    __table_args__ = (
+        UniqueConstraint("language_code", name="uq_courses_language_code"),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     language_code: Mapped[str] = mapped_column(String(10), nullable=False)
     name: Mapped[str] = mapped_column(String(100), nullable=False)
     ui_language_code: Mapped[str] = mapped_column(String(10), nullable=False)
     flag_emoji: Mapped[str] = mapped_column(String(16), nullable=False)
-    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
+    is_active: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=True,
+        server_default="1",
+    )
 
-    units: Mapped[list["Unit"]] = relationship(back_populates="course", cascade="all, delete-orphan", lazy="selectin")
-    users: Mapped[list["User"]] = relationship(back_populates="current_course", lazy="select")
+    units: Mapped[list["Unit"]] = relationship(
+        back_populates="course",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="Unit.position",
+    )
+    users: Mapped[list["User"]] = relationship(
+        back_populates="current_course",
+        lazy="select",
+    )
 
 
 class Unit(TimestampMixin, Base):
@@ -49,15 +80,27 @@ class Unit(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    course_id: Mapped[int] = mapped_column(ForeignKey("courses.id", ondelete="CASCADE"), nullable=False, index=True)
+    course_id: Mapped[int] = mapped_column(
+        ForeignKey("courses.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     color_bg: Mapped[str] = mapped_column(String(20), nullable=False)
     color_border: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    course: Mapped["Course"] = relationship(back_populates="units", lazy="select")
-    skills: Mapped[list["Skill"]] = relationship(back_populates="unit", cascade="all, delete-orphan", lazy="selectin")
+    course: Mapped["Course"] = relationship(
+        back_populates="units",
+        lazy="select",
+    )
+    skills: Mapped[list["Skill"]] = relationship(
+        back_populates="unit",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="Skill.position",
+    )
 
 
 class Skill(TimestampMixin, Base):
@@ -70,14 +113,26 @@ class Skill(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    unit_id: Mapped[int] = mapped_column(ForeignKey("units.id", ondelete="CASCADE"), nullable=False, index=True)
+    unit_id: Mapped[int] = mapped_column(
+        ForeignKey("units.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     title: Mapped[str] = mapped_column(String(100), nullable=False)
     skill_type: Mapped[SkillType] = mapped_column(enum_column(SkillType, 20))
     icon_type: Mapped[SkillIcon] = mapped_column(enum_column(SkillIcon, 20))
 
-    unit: Mapped["Unit"] = relationship(back_populates="skills", lazy="select")
-    lessons: Mapped[list["Lesson"]] = relationship(back_populates="skill", cascade="all, delete-orphan", lazy="selectin")
+    unit: Mapped["Unit"] = relationship(
+        back_populates="skills",
+        lazy="select",
+    )
+    lessons: Mapped[list["Lesson"]] = relationship(
+        back_populates="skill",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="Lesson.position",
+    )
 
 
 class Lesson(TimestampMixin, Base):
@@ -91,13 +146,34 @@ class Lesson(TimestampMixin, Base):
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    skill_id: Mapped[int] = mapped_column(ForeignKey("skills.id", ondelete="CASCADE"), nullable=False, index=True)
+    skill_id: Mapped[int] = mapped_column(
+        ForeignKey("skills.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
-    xp_reward: Mapped[int] = mapped_column(Integer, nullable=False, default=10, server_default="10")
+    xp_reward: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=10,
+        server_default="10",
+    )
 
-    skill: Mapped["Skill"] = relationship(back_populates="lessons", lazy="select")
-    exercises: Mapped[list["Exercise"]] = relationship(back_populates="lesson", cascade="all, delete-orphan", lazy="selectin")
-    attempts: Mapped[list["LessonAttempt"]] = relationship(back_populates="lesson", passive_deletes=True, lazy="select")
+    skill: Mapped["Skill"] = relationship(
+        back_populates="lessons",
+        lazy="select",
+    )
+    exercises: Mapped[list["Exercise"]] = relationship(
+        back_populates="lesson",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="Exercise.position",
+    )
+    attempts: Mapped[list["LessonAttempt"]] = relationship(
+        back_populates="lesson",
+        passive_deletes=True,
+        lazy="select",
+    )
 
 
 class Exercise(TimestampMixin, Base):
@@ -105,12 +181,20 @@ class Exercise(TimestampMixin, Base):
 
     __tablename__ = "exercises"
     __table_args__ = (
-        UniqueConstraint("lesson_id", "position", name="uq_exercises_lesson_position"),
+        UniqueConstraint(
+            "lesson_id",
+            "position",
+            name="uq_exercises_lesson_position",
+        ),
         CheckConstraint("position >= 1", name="ck_exercises_position_positive"),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    lesson_id: Mapped[int] = mapped_column(ForeignKey("lessons.id", ondelete="CASCADE"), nullable=False, index=True)
+    lesson_id: Mapped[int] = mapped_column(
+        ForeignKey("lessons.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     type: Mapped[ExerciseType] = mapped_column(enum_column(ExerciseType, 32))
     prompt: Mapped[str] = mapped_column(Text, nullable=False)
@@ -118,10 +202,27 @@ class Exercise(TimestampMixin, Base):
     hint: Mapped[str | None] = mapped_column(Text, nullable=True)
     audio_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
 
-    lesson: Mapped["Lesson"] = relationship(back_populates="exercises", lazy="select")
-    options: Mapped[list["ExerciseOption"]] = relationship(back_populates="exercise", cascade="all, delete-orphan", lazy="selectin")
-    accepted_answers: Mapped[list["ExerciseAcceptedAnswer"]] = relationship(back_populates="exercise", cascade="all, delete-orphan", lazy="selectin")
-    attempt_answers: Mapped[list["AttemptAnswer"]] = relationship(back_populates="exercise", passive_deletes=True, lazy="select")
+    lesson: Mapped["Lesson"] = relationship(
+        back_populates="exercises",
+        lazy="select",
+    )
+    options: Mapped[list["ExerciseOption"]] = relationship(
+        back_populates="exercise",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="ExerciseOption.position",
+    )
+    accepted_answers: Mapped[list["ExerciseAcceptedAnswer"]] = relationship(
+        back_populates="exercise",
+        cascade="all, delete-orphan",
+        lazy="select",
+        order_by="ExerciseAcceptedAnswer.id",
+    )
+    attempt_answers: Mapped[list["AttemptAnswer"]] = relationship(
+        back_populates="exercise",
+        passive_deletes=True,
+        lazy="select",
+    )
 
 
 class ExerciseOption(TimestampMixin, Base):
@@ -129,35 +230,85 @@ class ExerciseOption(TimestampMixin, Base):
 
     __tablename__ = "exercise_options"
     __table_args__ = (
-        UniqueConstraint("exercise_id", "position", name="uq_exercise_options_exercise_position"),
-        CheckConstraint("position >= 1", name="ck_exercise_options_position_positive"),
-        CheckConstraint("answer_order IS NULL OR answer_order >= 1", name="ck_exercise_options_answer_order_positive"),
-        CheckConstraint("(pair_key IS NULL) = (side IS NULL)", name="ck_exercise_options_pair_side_together"),
+        UniqueConstraint(
+            "exercise_id",
+            "position",
+            name="uq_exercise_options_exercise_position",
+        ),
+        CheckConstraint(
+            "position >= 1",
+            name="ck_exercise_options_position_positive",
+        ),
+        CheckConstraint(
+            "answer_order IS NULL OR answer_order >= 1",
+            name="ck_exercise_options_answer_order_positive",
+        ),
+        CheckConstraint(
+            "(pair_key IS NULL) = (side IS NULL)",
+            name="ck_exercise_options_pair_side_together",
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id", ondelete="CASCADE"), nullable=False, index=True)
+    exercise_id: Mapped[int] = mapped_column(
+        ForeignKey("exercises.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     position: Mapped[int] = mapped_column(Integer, nullable=False)
     text: Mapped[str] = mapped_column(Text, nullable=False)
     image_emoji: Mapped[str | None] = mapped_column(String(16), nullable=True)
-    is_correct: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    is_correct: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
     answer_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
     pair_key: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    side: Mapped[OptionSide | None] = mapped_column(SAEnum(OptionSide, native_enum=False, create_constraint=True, length=10), nullable=True)
+    side: Mapped[OptionSide | None] = mapped_column(
+        SAEnum(
+            OptionSide,
+            native_enum=False,
+            create_constraint=True,
+            length=10,
+        ),
+        nullable=True,
+    )
 
-    exercise: Mapped["Exercise"] = relationship(back_populates="options", lazy="select")
+    exercise: Mapped["Exercise"] = relationship(
+        back_populates="options",
+        lazy="select",
+    )
 
 
 class ExerciseAcceptedAnswer(TimestampMixin, Base):
     """A valid typed or translated answer for an exercise."""
 
     __tablename__ = "exercise_accepted_answers"
-    __table_args__ = (UniqueConstraint("exercise_id", "answer_text", name="uq_exercise_accepted_answers_exercise_text"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "exercise_id",
+            "answer_text",
+            name="uq_exercise_accepted_answers_exercise_text",
+        ),
+    )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    exercise_id: Mapped[int] = mapped_column(ForeignKey("exercises.id", ondelete="CASCADE"), nullable=False, index=True)
+    exercise_id: Mapped[int] = mapped_column(
+        ForeignKey("exercises.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
     answer_text: Mapped[str] = mapped_column(Text, nullable=False)
-    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="0")
+    is_primary: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        default=False,
+        server_default="0",
+    )
 
-    exercise: Mapped["Exercise"] = relationship(back_populates="accepted_answers", lazy="select")
-    # Answer comparison happens in application code after trimming and lowercasing.
+    exercise: Mapped["Exercise"] = relationship(
+        back_populates="accepted_answers",
+        lazy="select",
+    )

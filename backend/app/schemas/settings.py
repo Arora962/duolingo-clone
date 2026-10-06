@@ -1,6 +1,25 @@
-from pydantic import BaseModel, ConfigDict, Field
+"""Learner settings request and response models."""
+
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict
+
+
 class SettingsResponse(BaseModel):
-    daily_goal_xp:int; sound_effects_enabled:bool; dark_mode_enabled:bool; reminders_enabled:bool
+    """Current learner settings."""
+
+    daily_goal_xp: int
+    sound_effects_enabled: bool
+    dark_mode_enabled: bool
+    reminders_enabled: bool
+
+
 class SettingsPatch(BaseModel):
-    daily_goal_xp:int|None=Field(default=None); sound_effects_enabled:bool|None=None; dark_mode_enabled:bool|None=None; reminders_enabled:bool|None=None
-    model_config=ConfigDict(extra="forbid")
+    """Validated partial settings update."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    daily_goal_xp: Literal[10, 20, 30, 50] | None = None
+    sound_effects_enabled: bool | None = None
+    dark_mode_enabled: bool | None = None
+    reminders_enabled: bool | None = None
