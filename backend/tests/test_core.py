@@ -26,6 +26,7 @@ from app.models import (
     UserSettings,
 )
 from app.services.stats import current_hearts_status, total_xp
+from app.seed import seed
 
 
 def _learner(client):
@@ -243,8 +244,6 @@ def test_seed_idempotency(client):
             model.__tablename__: db.scalar(select(func.count()).select_from(model))
             for model in models
         }
-
-    from app.seed import seed
 
     seed()
 

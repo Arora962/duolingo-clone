@@ -10,6 +10,8 @@ from fastapi.staticfiles import StaticFiles
 from app.config import AUTO_SEED, CORS_ORIGINS, ENABLE_DEV_ENDPOINTS
 from app.database import Base, engine
 from app.routers import hearts, leaderboard, lessons, me, path
+from app.routers import dev
+from app.seed import seed
 from app.schemas.health import HealthResponse
 
 
@@ -18,8 +20,6 @@ async def lifespan(app: FastAPI):
     """Create the frozen schema and optionally run the seed."""
     Base.metadata.create_all(bind=engine)
     if AUTO_SEED:
-        from app.seed import seed
-
         seed()
     yield
 
@@ -48,8 +48,6 @@ app.include_router(hearts.router, prefix="/api")
 app.include_router(leaderboard.router, prefix="/api")
 
 if ENABLE_DEV_ENDPOINTS:
-    from app.routers import dev
-
     app.include_router(dev.router, prefix="/api")
 
 

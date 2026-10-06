@@ -140,6 +140,30 @@ These routes exist only when `ENABLE_DEV_ENDPOINTS=true`:
 
 The backend follows a thin-router architecture: **routers → services → models**. Routers handle HTTP concerns, dependency injection, request validation, response-model serialization, and transaction commits. Services contain lesson lifecycle, answer evaluation, hearts, statistics, achievements, leaderboard, and path logic. SQLAlchemy models define the frozen 15-table relational schema and its constraints, indexes, relationships, and delete behavior. Pydantic schemas define the public request and response contracts consumed by the frontend.
 
+## Database schema
+
+The backend intentionally preserves the frozen 15-table SQLite schema:
+
+| Table | Purpose |
+| --- | --- |
+| `courses` | Available language courses |
+| `units` | Ordered course units |
+| `skills` | Ordered skills within units |
+| `lessons` | Scored lessons within skills |
+| `exercises` | Lesson questions |
+| `exercise_options` | Choice, word-bank, and matching options |
+| `exercise_accepted_answers` | Accepted typed/translated answers |
+| `users` | Learner accounts and course selection |
+| `user_settings` | Persistent learner preferences |
+| `lesson_attempts` | Lesson attempt lifecycle and XP |
+| `attempt_answers` | Submitted exercise answers |
+| `heart_events` | Heart gains/losses and refill history |
+| `achievements` | Achievement definitions |
+| `user_achievements` | Learner achievement progress/unlocks |
+| `system_settings` | Simulated-clock and other system settings |
+
+Foreign keys, uniqueness constraints, check constraints, indexes, and cascade/set-null behavior are defined in the SQLAlchemy models. The seed is idempotent and does not create duplicate learner history.
+
 ## Simulated clock
 
 The application uses naive UTC timestamps consistently. `app.clock.now_utc()` reads the `time_offset_days` value from `system_settings` and returns real UTC time plus that simulated day offset. The development clock routes can advance or reset the offset without changing stored lesson history. Streaks, daily XP, weekly leaderboard periods, and heart regeneration therefore use the simulated clock while database timestamps remain ordinary naive UTC values. This makes date-dependent behavior deterministic and testable without waiting for real calendar days.

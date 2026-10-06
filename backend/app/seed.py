@@ -34,6 +34,7 @@ from app.models import (
     UserSettings,
 )
 from app.seed_data import ACHIEVEMENTS, COURSE, UNITS
+from app.services.achievements import evaluate
 
 
 def _enum(enum_cls, value):
@@ -505,8 +506,6 @@ def _seed_achievements(db: Session, learner: User) -> None:
                 "threshold": data["threshold"],
             },
         )
-    from app.services.achievements import evaluate
-
     evaluate(db, learner.id)
 
 
