@@ -4,7 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 from app.clock import now_utc, today
 from app.enums import AttemptStatus, HeartEventType, SkillType
-from app.models import HeartEvent, LessonAttempt, Lesson, Skill, UserSettings
+from app.models import AttemptAnswer, HeartEvent, LessonAttempt, Lesson, Skill, UserSettings
 
 MAX_HEARTS = 5
 HEART_REGEN_MINUTES = 30
@@ -66,7 +66,8 @@ def completed_lesson_ids(db,user_id):
     return set(rows)
 
 def non_treasure_lessons_completed(db,user_id):
-    value=db.scalar(select(func.count(func.distinct(LessonAttempt.lesson_id))).join(Lesson).join(Skill).where(
+    """Number of COMPLETED non-treasure attempts (replays count, like the LESSONS_COMPLETED achievement)."""
+    value=db.scalar(select(func.count(LessonAttempt.id)).join(Lesson).join(Skill).where(
         LessonAttempt.user_id==user_id, LessonAttempt.status==AttemptStatus.COMPLETED,
         Skill.skill_type != SkillType.TREASURE))
     return int(value or 0)
@@ -79,18 +80,13 @@ def skill_lessons_completed(db,user_id,skill_id):
     return int(value or 0)
 
 def perfect_lessons(db,user_id):
-    sub=select(LessonAttempt.id).join(Lesson).join(Skill).where(
+    """COMPLETED non-treasure attempts with no wrong answer, counted in a single query."""
+    has_wrong=select(AttemptAnswer.id).where(
+        AttemptAnswer.attempt_id==LessonAttempt.id, AttemptAnswer.is_correct.is_(False)).exists()
+    value=db.scalar(select(func.count(LessonAttempt.id)).join(Lesson).join(Skill).where(
         LessonAttempt.user_id==user_id, LessonAttempt.status==AttemptStatus.COMPLETED,
-        Skill.skill_type != SkillType.TREASURE)
-    attempts=db.scalars(sub).all()
-    if not attempts:return 0
-    from app.models import AttemptAnswer
-    n=0
-    for attempt_id in attempts:
-        wrong=db.scalar(select(func.count()).select_from(AttemptAnswer).where(
-            AttemptAnswer.attempt_id==attempt_id, AttemptAnswer.is_correct.is_(False)))
-        if not wrong:n+=1
-    return n
+        Skill.skill_type != SkillType.TREASURE, ~has_wrong))
+    return int(value or 0)
 
 def current_hearts_status(db,user_id):
     events=db.scalars(select(HeartEvent).where(HeartEvent.user_id==user_id).order_by(HeartEvent.created_at,HeartEvent.id)).all()

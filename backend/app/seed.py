@@ -16,14 +16,12 @@ def _get_or_create(db,model,where,values):
     return obj
 
 def _practice_exercises(unit_data):
-    source=None
-    for s in unit_data["skills"]:
-        if s["skill_type"]==SkillType.LESSON.value and s["lessons"]:
-            source=s["lessons"][0]["exercises"];break
-    if not source:return []
-    copied=deepcopy(source[:5])
-    if len(copied)<5:return copied
-    sixth=deepcopy(copied[0]); sixth["prompt"]="Practice: choose the correct Spanish greeting."; copied.append(sixth)
+    """Six exercises reused from the unit: the first lesson's five (all five types) plus one more multiple choice."""
+    skill=next((s for s in unit_data["skills"] if s["skill_type"]==SkillType.LESSON.value and s["lessons"]),None)
+    if skill is None:return []
+    copied=deepcopy(skill["lessons"][0]["exercises"][:5])
+    extra_source=skill["lessons"][1]["exercises"][0] if len(skill["lessons"])>1 else skill["lessons"][0]["exercises"][0]
+    copied.append(deepcopy(extra_source))
     return copied
 
 def _seed_content(db):
@@ -76,7 +74,7 @@ def _add_correct_answers(db,attempt,lesson,when,with_one_retry=False):
         if ex.type in {ExerciseType.MULTIPLE_CHOICE,ExerciseType.FILL_IN_BLANK} and ex.options:
             correct=next(o for o in ex.options if o.is_correct)
             if with_one_retry and ex.position==1:
-                db.add(AttemptAnswer(attempt_id=attempt.id,exercise_id=ex.id,submitted_answer="wrong answer",is_correct=False,answered_at=when-timedelta(seconds=40)))
+                db.add(AttemptAnswer(attempt_id=attempt.id,exercise_id=ex.id,submitted_answer=next(o.text for o in ex.options if not o.is_correct),is_correct=False,answered_at=when-timedelta(seconds=40)))
             db.add(AttemptAnswer(attempt_id=attempt.id,exercise_id=ex.id,submitted_answer=correct.text,is_correct=True,answered_at=when-timedelta(seconds=30)))
         elif ex.type==ExerciseType.TYPE_ANSWER:
             answer=next(a for a in ex.accepted_answers if a.is_primary)

@@ -4,7 +4,6 @@ from app.enums import HeartEventType
 from app.models import HeartEvent
 from app.services.stats import MAX_HEARTS, current_hearts_status
 from app.errors import api_error
-MAX_HEARTS=5
 HEART_REFILL_GEM_COST=100
 
 def refill(db,user,method):

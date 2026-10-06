@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.deps import get_current_user
 from app.models import User
-from app.services.stats import total_xp,current_streak,streak_active_today,current_hearts_status,xp_today,daily_goal
+from app.services.stats import (total_xp,current_streak,longest_streak,streak_active_today,current_hearts_status,xp_today,daily_goal,
+                                non_treasure_lessons_completed,perfect_lessons)
 from app.services.achievements import get_achievement_progress
 from app.schemas.settings import SettingsPatch,SettingsResponse
 from app.errors import api_error
@@ -21,10 +22,9 @@ def me(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
 @router.get("/profile",summary="Get learner profile and achievements")
 def profile(db:Session=Depends(get_db),user:User=Depends(get_current_user)):
     total=total_xp(db,user.id)
-    from app.services.stats import longest_streak,perfect_lessons
     return {"user":{"id":user.id,"username":user.username,"display_name":user.display_name,"avatar_url":user.avatar_url,"joined_at":user.created_at},
             "stats":{"total_xp":total,"current_streak":current_streak(db,user.id),"longest_streak":longest_streak(db,user.id),
-                     "lessons_completed":__import__("app.services.stats",fromlist=["non_treasure_lessons_completed"]).non_treasure_lessons_completed(db,user.id),
+                     "lessons_completed":non_treasure_lessons_completed(db,user.id),
                      "perfect_lessons":perfect_lessons(db,user.id),"xp_today":xp_today(db,user.id),"daily_goal_xp":user.settings.daily_goal_xp if user.settings else 20,"gems":user.gems},
             "course":{"id":user.current_course.id,"language_code":user.current_course.language_code,"name":user.current_course.name,"flag_emoji":user.current_course.flag_emoji},
             "achievements":get_achievement_progress(db,user.id)}
@@ -43,5 +43,5 @@ def patch_settings(payload:SettingsPatch,db:Session=Depends(get_db),user:User=De
     for key in ("sound_effects_enabled","dark_mode_enabled","reminders_enabled"):
         value=getattr(payload,key)
         if value is not None:setattr(s,key,value)
-    db.flush()
+    db.commit()
     return s

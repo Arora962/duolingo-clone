@@ -83,3 +83,15 @@ def solved_exercise_ids(attempt):
         elif any(a.is_correct for a in answers):
             solved.add(exercise_id)
     return solved
+
+
+def speak_text_for(exercise, payload, correct_answer):
+    """Text the browser should read aloud after an answer.
+
+    For MATCH_PAIRS the Spanish word is the LEFT option, while correct_answer is the
+    English (right-side) text, so speak the left option instead.
+    """
+    if exercise.type == ExerciseType.MATCH_PAIRS:
+        left = _option(exercise, payload.get("left_option_id"))
+        return left.text if left else correct_answer
+    return correct_answer
