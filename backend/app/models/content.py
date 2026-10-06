@@ -36,7 +36,7 @@ class Course(TimestampMixin, Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, server_default="1")
 
     units: Mapped[list["Unit"]] = relationship(back_populates="course", cascade="all, delete-orphan", lazy="selectin")
-    users: Mapped[list["User"]] = relationship(back_populates="current_course", lazy="selectin")
+    users: Mapped[list["User"]] = relationship(back_populates="current_course", lazy="select")
 
 
 class Unit(TimestampMixin, Base):
@@ -97,7 +97,7 @@ class Lesson(TimestampMixin, Base):
 
     skill: Mapped["Skill"] = relationship(back_populates="lessons", lazy="select")
     exercises: Mapped[list["Exercise"]] = relationship(back_populates="lesson", cascade="all, delete-orphan", lazy="selectin")
-    attempts: Mapped[list["LessonAttempt"]] = relationship(back_populates="lesson", passive_deletes=True, lazy="selectin")
+    attempts: Mapped[list["LessonAttempt"]] = relationship(back_populates="lesson", passive_deletes=True, lazy="select")
 
 
 class Exercise(TimestampMixin, Base):
@@ -121,7 +121,7 @@ class Exercise(TimestampMixin, Base):
     lesson: Mapped["Lesson"] = relationship(back_populates="exercises", lazy="select")
     options: Mapped[list["ExerciseOption"]] = relationship(back_populates="exercise", cascade="all, delete-orphan", lazy="selectin")
     accepted_answers: Mapped[list["ExerciseAcceptedAnswer"]] = relationship(back_populates="exercise", cascade="all, delete-orphan", lazy="selectin")
-    attempt_answers: Mapped[list["AttemptAnswer"]] = relationship(back_populates="exercise", passive_deletes=True, lazy="selectin")
+    attempt_answers: Mapped[list["AttemptAnswer"]] = relationship(back_populates="exercise", passive_deletes=True, lazy="select")
 
 
 class ExerciseOption(TimestampMixin, Base):

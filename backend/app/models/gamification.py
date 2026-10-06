@@ -33,8 +33,8 @@ class LessonAttempt(Base):
 
     user: Mapped["User"] = relationship(back_populates="lesson_attempts", lazy="select")
     lesson: Mapped["Lesson"] = relationship(back_populates="attempts", lazy="select")
-    answers: Mapped[list["AttemptAnswer"]] = relationship(back_populates="attempt", cascade="all, delete-orphan", lazy="selectin")
-    heart_events: Mapped[list["HeartEvent"]] = relationship(back_populates="attempt", passive_deletes=True, lazy="selectin")
+    answers: Mapped[list["AttemptAnswer"]] = relationship(back_populates="attempt", cascade="all, delete-orphan", lazy="select")
+    heart_events: Mapped[list["HeartEvent"]] = relationship(back_populates="attempt", passive_deletes=True, lazy="select")
 
 
 class AttemptAnswer(Base):
@@ -84,7 +84,7 @@ class Achievement(TimestampMixin, Base):
     metric: Mapped[AchievementMetric] = mapped_column(SAEnum(AchievementMetric, native_enum=False, create_constraint=True, length=24), nullable=False)
     threshold: Mapped[int] = mapped_column(Integer, nullable=False)
 
-    user_achievements: Mapped[list["UserAchievement"]] = relationship(back_populates="achievement", passive_deletes=True, lazy="selectin")
+    user_achievements: Mapped[list["UserAchievement"]] = relationship(back_populates="achievement", passive_deletes=True, lazy="select")
 
 
 class UserAchievement(Base):

@@ -22,9 +22,9 @@ class User(TimestampMixin, Base):
 
     current_course: Mapped["Course | None"] = relationship(back_populates="users", lazy="select")
     settings: Mapped["UserSettings | None"] = relationship(back_populates="user", cascade="all, delete-orphan", uselist=False, lazy="select")
-    lesson_attempts: Mapped[list["LessonAttempt"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    heart_events: Mapped[list["HeartEvent"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="selectin")
-    user_achievements: Mapped[list["UserAchievement"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="selectin")
+    lesson_attempts: Mapped[list["LessonAttempt"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select")
+    heart_events: Mapped[list["HeartEvent"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select")
+    user_achievements: Mapped[list["UserAchievement"]] = relationship(back_populates="user", cascade="all, delete-orphan", lazy="select")
 
 
 class UserSettings(TimestampMixin, Base):

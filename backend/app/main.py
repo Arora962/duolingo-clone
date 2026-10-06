@@ -1,57 +1,33 @@
+"""FastAPI application entry point."""
+import os
 from contextlib import asynccontextmanager
-
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-
-from app.database import Base, engine, get_db
-from app.models import User
-from app.services.stats import current_hearts, current_streak, total_xp
-
-DEFAULT_USERNAME = "learner"
-
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+from app.database import Base,engine
+from app.routers import me,path,lessons,hearts,leaderboard,dev
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Create the schema at startup; seed data is intentionally run separately."""
+async def lifespan(app:FastAPI):
     Base.metadata.create_all(bind=engine)
+    if os.getenv("AUTO_SEED","false").lower()=="true":
+        from app.seed import seed
+        seed()
     yield
 
+app=FastAPI(title="Duolingo Clone API",version="1.0.0",lifespan=lifespan)
+static_dir=Path(__file__).resolve().parent.parent / "static"
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+origins=[x.strip() for x in os.getenv("CORS_ORIGINS","http://localhost:3000,http://127.0.0.1:3000").split(",") if x.strip()]
+app.add_middleware(CORSMiddleware,allow_origins=origins,allow_methods=["*"],allow_headers=["*"])
 
-app = FastAPI(title="Duolingo Clone API", lifespan=lifespan)
+app.include_router(me.router,prefix="/api")
+app.include_router(path.router,prefix="/api")
+app.include_router(lessons.router,prefix="/api")
+app.include_router(hearts.router,prefix="/api")
+app.include_router(leaderboard.router,prefix="/api")
+app.include_router(dev.router,prefix="/api")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-
-@app.get("/api/health")
-def health():
-    return {"status": "ok"}
-
-
-@app.get("/api/me")
-def me(db: Session = Depends(get_db)):
-    """Return the seeded learner profile with all gamification values derived."""
-    user = db.scalar(select(User).where(User.username == DEFAULT_USERNAME))
-    if user is None:
-        raise HTTPException(status_code=404, detail="Default learner not found")
-    xp = total_xp(db, user.id)
-    streak = current_streak(db, user.id)
-    hearts = current_hearts(db, user.id)
-    # The new contract uses total_xp/current_streak; xp/streak aliases keep the existing frontend working.
-    return {
-        "id": user.id,
-        "username": user.username,
-        "display_name": user.display_name,
-        "gems": user.gems,
-        "total_xp": xp,
-        "current_streak": streak,
-        "hearts": hearts,
-        "xp": xp,
-        "streak": streak,
-    }
+@app.get("/api/health",summary="Health check")
+def health(): return {"status":"ok"}
