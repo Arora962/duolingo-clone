@@ -1,5 +1,6 @@
 """Learner identity, profile, and settings routes."""
 
+from backend.app.constants import DEFAULT_DAILY_GOAL_XP
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -68,8 +69,6 @@ def me(
         "xp_today": xp,
         "daily_goal_met": met,
         "current_course": current_course,
-        "xp": total,
-        "streak": streak,
     }
 
 
@@ -111,7 +110,7 @@ def profile(
             "lessons_completed": non_treasure_lessons_completed(db, user.id),
             "perfect_lessons": perfect_lessons(db, user.id),
             "xp_today": xp_today(db, user.id),
-            "daily_goal_xp": user.settings.daily_goal_xp if user.settings else 20,
+            "daily_goal_xp": user.settings.daily_goal_xp if user.settings else DEFAULT_DAILY_GOAL_XP,
             "gems": user.gems,
         },
         "course": course_data,
@@ -127,6 +126,8 @@ def profile(
 )
 def get_settings(user: User = Depends(get_current_user)) -> UserSettings:
     """Return learner settings."""
+    if user.settings is None:
+        api_error(404, "SETTINGS_NOT_FOUND", "Learner settings not found.")
     return user.settings
 
 

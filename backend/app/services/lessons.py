@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.clock import now_utc
 from app.constants import (
+    DEFAULT_DAILY_GOAL_XP,
     GEMS_TREASURE_REWARD,
     HEART_REFILL_GEM_COST,
     MAX_HEARTS,
@@ -394,7 +395,7 @@ def complete(db: Session, user: User, attempt_id: int) -> dict:
             "title": skills[index + 1]["title"],
         }
 
-    goal = user.settings.daily_goal_xp if user.settings else 20
+    goal = user.settings.daily_goal_xp if user.settings else DEFAULT_DAILY_GOAL_XP
     return {
         "xp_earned": attempt.xp_earned,
         "total_xp": total,

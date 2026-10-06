@@ -34,6 +34,4 @@ class MeResponse(BaseModel):
     xp_today: int
     daily_goal_met: bool
     current_course: CourseSummary | None
-    xp: int
-    streak: int
 

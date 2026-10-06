@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.clock import now_utc, today
-from app.constants import HEART_REGEN_MINUTES, MAX_HEARTS
+from app.constants import DEFAULT_DAILY_GOAL_XP, HEART_REGEN_MINUTES, MAX_HEARTS
 from app.enums import AttemptStatus, HeartEventType, SkillType
 from app.models import (
     AttemptAnswer,
@@ -265,6 +265,6 @@ def current_hearts(db: Session, user_id: int) -> int:
 def daily_goal(db: Session, user_id: int) -> tuple[int, int, bool]:
     """Return daily goal, today's XP, and whether the goal is met."""
     settings = db.get(UserSettings, user_id)
-    goal = settings.daily_goal_xp if settings else 20
+    goal = settings.daily_goal_xp if settings else DEFAULT_DAILY_GOAL_XP
     xp = xp_today(db, user_id)
     return goal, xp, xp >= goal

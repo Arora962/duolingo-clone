@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
-from app.clock import now_utc
+from app.clock import TIME_OFFSET_KEY, now_utc
 from app.database import Base, SessionLocal, engine
 from app.enums import (
     AchievementMetric,

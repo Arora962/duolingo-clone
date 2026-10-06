@@ -277,3 +277,11 @@ def test_dev_routes_disabled(dev_disabled_client):
         == 404
     )
     assert dev_disabled_client.post("/api/dev/clock/reset").status_code == 404
+def test_seeded_learner_baseline(client):
+    me = _learner(client)
+    assert me["total_xp"] == 110
+    assert me["current_streak"] == 3
+    assert me["hearts"] == 4
+    assert me["gems"] == 500
+    assert me["daily_goal_xp"] == 20
+    assert "xp" not in me and "streak" not in me
