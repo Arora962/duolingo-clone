@@ -143,9 +143,7 @@ def test_simulated_clock_streak(client):
 
     started = _start_available_lesson(client)
     _answer_all_exercises(client, started)
-    completed = client.post(
-        f"/api/attempts/{started['attempt_id']}/complete"
-    )
+    completed = client.post(f"/api/attempts/{started['attempt_id']}/complete")
     assert completed.status_code == 200
     assert completed.json()["streak_after"] == 4
 
@@ -207,9 +205,7 @@ def test_complete_awards_xp_and_unlocks_next_skill(client):
     before = _learner(client)
     started = _start_available_lesson(client, complete_skill=True)
     _answer_all_exercises(client, started)
-    completed = client.post(
-        f"/api/attempts/{started['attempt_id']}/complete"
-    )
+    completed = client.post(f"/api/attempts/{started['attempt_id']}/complete")
     assert completed.status_code == 200
     result = completed.json()
     assert result["xp_earned"] == 10
@@ -277,6 +273,8 @@ def test_dev_routes_disabled(dev_disabled_client):
         == 404
     )
     assert dev_disabled_client.post("/api/dev/clock/reset").status_code == 404
+
+
 def test_seeded_learner_baseline(client):
     me = _learner(client)
     assert me["total_xp"] == 110

@@ -32,11 +32,7 @@ def build_path(db: Session, user: User) -> dict | None:
         return None
 
     done = completed_lesson_ids(db, user.id)
-    skills = [
-        skill
-        for unit in course.units
-        for skill in unit.skills
-    ]
+    skills = [skill for unit in course.units for skill in unit.skills]
     skill_done = {
         skill.id: bool(skill.lessons)
         and all(lesson.id in done for lesson in skill.lessons)
@@ -56,9 +52,7 @@ def build_path(db: Session, user: User) -> dict | None:
             state = (
                 "COMPLETED"
                 if skill_done[skill.id]
-                else "AVAILABLE"
-                if previous_completed
-                else "LOCKED"
+                else "AVAILABLE" if previous_completed else "LOCKED"
             )
             lesson_output = []
             prior = True
@@ -66,9 +60,7 @@ def build_path(db: Session, user: User) -> dict | None:
                 lesson_state = (
                     "COMPLETED"
                     if lesson.id in done
-                    else "AVAILABLE"
-                    if prior and state != "LOCKED"
-                    else "LOCKED"
+                    else "AVAILABLE" if prior and state != "LOCKED" else "LOCKED"
                 )
                 lesson_output.append(
                     {
@@ -118,9 +110,7 @@ def build_path(db: Session, user: User) -> dict | None:
                 "description": unit.description,
                 "color_bg": unit.color_bg,
                 "color_border": unit.color_border,
-                "skills_completed": sum(
-                    skill_done[skill.id] for skill in unit_skills
-                ),
+                "skills_completed": sum(skill_done[skill.id] for skill in unit_skills),
                 "skills_total": len(unit_skills),
                 "skills": skill_output,
             }

@@ -29,10 +29,14 @@ def check_answer(exercise, payload):
     left_id = payload.get("left_option_id")
     right_id = payload.get("right_option_id")
 
-    if exercise_type in (
-        ExerciseType.MULTIPLE_CHOICE,
-        ExerciseType.FILL_IN_BLANK,
-    ) and exercise.options:
+    if (
+        exercise_type
+        in (
+            ExerciseType.MULTIPLE_CHOICE,
+            ExerciseType.FILL_IN_BLANK,
+        )
+        and exercise.options
+    ):
         if option_id is None or any(
             value is not None for value in (option_ids, text, left_id, right_id)
         ):
@@ -49,11 +53,7 @@ def check_answer(exercise, payload):
                 "The option does not belong to this exercise.",
             )
         correct_answer = next(
-            (
-                item.text
-                for item in exercise.options
-                if item.is_correct
-            ),
+            (item.text for item in exercise.options if item.is_correct),
             None,
         )
         return option.is_correct, option.text, correct_answer
@@ -93,8 +93,10 @@ def check_answer(exercise, payload):
         return correct, text, primary
 
     if exercise_type == ExerciseType.TRANSLATE_WORD_BANK:
-        if not isinstance(option_ids, list) or not option_ids or any(
-            value is not None for value in (option_id, text, left_id, right_id)
+        if (
+            not isinstance(option_ids, list)
+            or not option_ids
+            or any(value is not None for value in (option_id, text, left_id, right_id))
         ):
             api_error(
                 422,
@@ -138,8 +140,10 @@ def check_answer(exercise, payload):
         return correct, sentence, primary
 
     if exercise_type == ExerciseType.MATCH_PAIRS:
-        if not isinstance(left_id, int) or not isinstance(right_id, int) or any(
-            value is not None for value in (option_id, option_ids, text)
+        if (
+            not isinstance(left_id, int)
+            or not isinstance(right_id, int)
+            or any(value is not None for value in (option_id, option_ids, text))
         ):
             api_error(
                 422,
@@ -167,17 +171,12 @@ def check_answer(exercise, payload):
             (
                 option
                 for option in exercise.options
-                if option.side == OptionSide.RIGHT
-                and option.pair_key == left.pair_key
+                if option.side == OptionSide.RIGHT and option.pair_key == left.pair_key
             ),
             None,
         )
         feedback = (
-            right.text
-            if correct
-            else correct_right.text
-            if correct_right
-            else None
+            right.text if correct else correct_right.text if correct_right else None
         )
         return correct, f"{left.id}:{right.id}", feedback
 
@@ -225,9 +224,7 @@ def solved_exercise_ids(attempt) -> set[int]:
                             if option.id == right_id
                         )
                         matched.add(
-                            left.pair_key
-                            if left.pair_key == right.pair_key
-                            else None
+                            left.pair_key if left.pair_key == right.pair_key else None
                         )
                     except (ValueError, StopIteration):
                         pass

@@ -287,10 +287,14 @@ def _add_correct_answers(
 ) -> None:
     """Add deterministic correct answers for a seeded attempt."""
     for exercise in lesson.exercises:
-        if exercise.type in {
-            ExerciseType.MULTIPLE_CHOICE,
-            ExerciseType.FILL_IN_BLANK,
-        } and exercise.options:
+        if (
+            exercise.type
+            in {
+                ExerciseType.MULTIPLE_CHOICE,
+                ExerciseType.FILL_IN_BLANK,
+            }
+            and exercise.options
+        ):
             correct = next(option for option in exercise.options if option.is_correct)
             if with_one_retry and exercise.position == 1:
                 wrong = next(
@@ -316,9 +320,7 @@ def _add_correct_answers(
             )
         elif exercise.type == ExerciseType.TYPE_ANSWER:
             answer = next(
-                answer
-                for answer in exercise.accepted_answers
-                if answer.is_primary
+                answer for answer in exercise.accepted_answers if answer.is_primary
             )
             db.add(
                 AttemptAnswer(
@@ -409,12 +411,15 @@ def _seed_learner_progress(
     lesson_groups: list[tuple[int, Skill, Lesson]],
 ) -> None:
     """Create the frozen learner progress history."""
-    if db.scalar(
-        select(LessonAttempt.id).where(
-            LessonAttempt.user_id == learner.id,
-            LessonAttempt.status == AttemptStatus.COMPLETED,
+    if (
+        db.scalar(
+            select(LessonAttempt.id).where(
+                LessonAttempt.user_id == learner.id,
+                LessonAttempt.status == AttemptStatus.COMPLETED,
+            )
         )
-    ) is not None:
+        is not None
+    ):
         return
 
     first = [
@@ -474,12 +479,15 @@ def _seed_bots(
             gems=100 + bot_index,
             is_seeded_bot=True,
         )
-        if db.scalar(
-            select(LessonAttempt.id).where(
-                LessonAttempt.user_id == bot.id,
-                LessonAttempt.status == AttemptStatus.COMPLETED,
+        if (
+            db.scalar(
+                select(LessonAttempt.id).where(
+                    LessonAttempt.user_id == bot.id,
+                    LessonAttempt.status == AttemptStatus.COMPLETED,
+                )
             )
-        ) is not None:
+            is not None
+        ):
             continue
         current = now_utc(db).replace(hour=14, minute=0, second=0, microsecond=0)
         for day_offset in range(0, min(4, 1 + bot_index % 4)):

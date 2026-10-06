@@ -64,10 +64,7 @@ def _exercise_public(exercise: Exercise) -> dict:
         else:
             payload["requires_typing"] = True
     elif exercise.type == ExerciseType.TRANSLATE_WORD_BANK:
-        tiles = [
-            {"id": option.id, "text": option.text}
-            for option in exercise.options
-        ]
+        tiles = [{"id": option.id, "text": option.text} for option in exercise.options]
         random.SystemRandom().shuffle(tiles)
         payload["tiles"] = tiles
     elif exercise.type == ExerciseType.MATCH_PAIRS:
@@ -103,9 +100,7 @@ def _lesson_query(lesson_id: int):
         .options(
             selectinload(Lesson.skill),
             selectinload(Lesson.exercises).selectinload(Exercise.options),
-            selectinload(Lesson.exercises).selectinload(
-                Exercise.accepted_answers
-            ),
+            selectinload(Lesson.exercises).selectinload(Exercise.accepted_answers),
         )
     )
 
@@ -209,9 +204,7 @@ def start(db: Session, user: User, lesson_id: int) -> dict:
         "xp_reward": lesson.xp_reward,
         "hearts": int(hearts_status["hearts"]),
         "max_hearts": MAX_HEARTS,
-        "time_limit_seconds": (
-            TIMED_PRACTICE_SECONDS if mode != "STANDARD" else None
-        ),
+        "time_limit_seconds": (TIMED_PRACTICE_SECONDS if mode != "STANDARD" else None),
         "expires_at": (
             attempt.started_at + timedelta(seconds=TIMED_PRACTICE_SECONDS)
             if mode != "STANDARD"
@@ -243,11 +236,7 @@ def answer(db: Session, user: User, attempt_id: int, payload: dict) -> dict:
         api_error(409, "TIME_EXPIRED", "The timed practice has expired.")
 
     exercise = next(
-        (
-            item
-            for item in lesson.exercises
-            if item.id == payload.get("exercise_id")
-        ),
+        (item for item in lesson.exercises if item.id == payload.get("exercise_id")),
         None,
     )
     if exercise is None:
@@ -371,9 +360,7 @@ def complete(db: Session, user: User, attempt_id: int) -> dict:
     path = build_path(db, user)
     state = skill_state(path, lesson.skill_id)
     skill_just = (
-        not skill_was_completed
-        and state is not None
-        and state["state"] == "COMPLETED"
+        not skill_was_completed and state is not None and state["state"] == "COMPLETED"
     )
     if path is None or state is None:
         api_error(409, "COURSE_NOT_SELECTED", "The learner has no current course.")

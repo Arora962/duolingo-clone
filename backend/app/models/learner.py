@@ -11,9 +11,7 @@ class User(TimestampMixin, Base):
     """A learner account; XP, streak, hearts, and progress are derived."""
 
     __tablename__ = "users"
-    __table_args__ = (
-        CheckConstraint("gems >= 0", name="ck_users_gems_nonnegative"),
-    )
+    __table_args__ = (CheckConstraint("gems >= 0", name="ck_users_gems_nonnegative"),)
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     username: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)

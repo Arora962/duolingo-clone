@@ -229,9 +229,7 @@ def current_hearts_status(db: Session, user_id: int) -> dict[str, int | None]:
     if hearts < MAX_HEARTS and anchor is not None:
         gained = max(
             0,
-            int(
-                (now - anchor).total_seconds() // (HEART_REGEN_MINUTES * 60)
-            ),
+            int((now - anchor).total_seconds() // (HEART_REGEN_MINUTES * 60)),
         )
         if gained:
             hearts = min(MAX_HEARTS, hearts + gained)
@@ -244,9 +242,7 @@ def current_hearts_status(db: Session, user_id: int) -> dict[str, int | None]:
         next_seconds = max(
             0,
             int(
-                (
-                    anchor + timedelta(minutes=HEART_REGEN_MINUTES) - now
-                ).total_seconds()
+                (anchor + timedelta(minutes=HEART_REGEN_MINUTES) - now).total_seconds()
             ),
         )
 

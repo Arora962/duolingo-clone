@@ -1,6 +1,6 @@
 """Learner identity, profile, and settings routes."""
 
-from backend.app.constants import DEFAULT_DAILY_GOAL_XP
+from app.constants import DEFAULT_DAILY_GOAL_XP
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -110,7 +110,9 @@ def profile(
             "lessons_completed": non_treasure_lessons_completed(db, user.id),
             "perfect_lessons": perfect_lessons(db, user.id),
             "xp_today": xp_today(db, user.id),
-            "daily_goal_xp": user.settings.daily_goal_xp if user.settings else DEFAULT_DAILY_GOAL_XP,
+            "daily_goal_xp": (
+                user.settings.daily_goal_xp if user.settings else DEFAULT_DAILY_GOAL_XP
+            ),
             "gems": user.gems,
         },
         "course": course_data,
