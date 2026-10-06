@@ -1,0 +1,119 @@
+"""Plain Python seed data for the Spanish-for-English-speakers course."""
+
+COURSE = {
+    "language_code": "es",
+    "name": "Spanish",
+    "ui_language_code": "en",
+    "flag_emoji": "🇪🇸",
+    "is_active": True,
+}
+
+UNITS = [
+    {
+        "position": 1,
+        "title": "Basics",
+        "description": "Greetings, introductions, and everyday beginner Spanish.",
+        "color_bg": "#d7f5d2",
+        "color_border": "#58cc02",
+        "skills": [
+            {
+                "position": 1, "title": "Greetings", "skill_type": "LESSON", "icon_type": "STAR",
+                "lessons": [
+                    {"position": 1, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "How do you say hello?", "source_text": None, "hint": None, "options": [("Hola", True), ("Adiós", False), ("Gracias", False), ("Familia", False)]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "Hello, Maria.", "hint": None, "options": [("Hola", False, 1), ("María", False, 2), ("amigo", False, None)], "answers": ["Hola María."]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type the Spanish greeting.", "source_text": "Hello", "hint": "A common greeting", "answers": ["hola"]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the greeting.", "source_text": "____, Ana.", "hint": None, "options": [("Hola", True), ("Pan", False), ("Casa", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match each Spanish word with its English meaning.", "source_text": None, "hint": None, "pairs": [("Hola", "Hello"), ("Adiós", "Goodbye"), ("Gracias", "Thanks"), ("Sí", "Yes")]},
+                    ]},
+                    {"position": 2, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'gracias' mean?", "source_text": None, "hint": None, "options": [("Thanks", True), ("Please", False), ("Hello", False), ("No", False)]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "Goodbye, friend.", "hint": None, "options": [("Adiós", False, 1), ("amigo", False, 2), ("Hola", False, None)], "answers": ["Adiós amigo."]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'please' in Spanish.", "source_text": "Please", "hint": None, "answers": ["por favor"]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the word.", "source_text": "Gracias por tu ____.", "hint": None, "options": [("ayuda", True), ("hola", False), ("sí", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match the greetings.", "source_text": None, "hint": None, "pairs": [("Buenos días", "Good morning"), ("Buenas noches", "Good night"), ("Por favor", "Please"), ("Perdón", "Sorry") ]},
+                    ]},
+                ],
+            },
+            {
+                "position": 2, "title": "People", "skill_type": "LESSON", "icon_type": "BOOK",
+                "lessons": [
+                    {"position": 1, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'familia' mean?", "source_text": None, "hint": None, "options": [("Family", True), ("Friend", False), ("Food", False), ("House", False)]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'mother' in Spanish.", "source_text": "Mother", "hint": None, "answers": ["madre"]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "My family is small.", "hint": None, "options": [("Mi", False, 1), ("familia", False, 2), ("es", False, 3), ("pequeña", False, 4), ("grande", False, None)], "answers": ["Mi familia es pequeña."]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the family word.", "source_text": "Mi ____ es amable.", "hint": None, "options": [("hermana", True), ("pan", False), ("agua", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match family words.", "source_text": None, "hint": None, "pairs": [("padre", "father"), ("madre", "mother"), ("hermano", "brother"), ("hermana", "sister") ]},
+                    ]},
+                    {"position": 2, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'amigo' mean?", "source_text": None, "hint": None, "options": [("Friend", True), ("Teacher", False), ("Brother", False), ("Child", False)]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'father' in Spanish.", "source_text": "Father", "hint": None, "answers": ["padre"]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "My brother is here.", "hint": None, "options": [("Mi", False, 1), ("hermano", False, 2), ("está", False, 3), ("aquí", False, 4), ("amigo", False, None)], "answers": ["Mi hermano está aquí."]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the sentence.", "source_text": "Ella es mi ____.", "hint": None, "options": [("hermana", True), ("pan", False), ("agua", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match people words.", "source_text": None, "hint": None, "pairs": [("niño", "boy"), ("niña", "girl"), ("hombre", "man"), ("mujer", "woman") ]},
+                    ]},
+                ],
+            },
+            {"position": 3, "title": "Treasure", "skill_type": "TREASURE", "icon_type": "TREASURE", "lessons": []},
+            {"position": 4, "title": "Quick Practice", "skill_type": "PRACTICE", "icon_type": "DUMBBELL", "lessons": []},
+        ],
+    },
+    {
+        "position": 2,
+        "title": "Everyday Life",
+        "description": "Food, home, and simple sentences for daily life.",
+        "color_bg": "#fff0c7",
+        "color_border": "#ffb300",
+        "skills": [
+            {
+                "position": 1, "title": "Food", "skill_type": "LESSON", "icon_type": "STAR",
+                "lessons": [
+                    {"position": 1, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'pan' mean?", "source_text": None, "hint": None, "options": [("Bread", True), ("Milk", False), ("Rice", False), ("Apple", False)]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'water' in Spanish.", "source_text": "Water", "hint": None, "answers": ["agua"]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "I eat bread.", "hint": None, "options": [("Yo", False, 1), ("como", False, 2), ("pan", False, 3), ("agua", False, None)], "answers": ["Yo como pan."]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the food sentence.", "source_text": "Quiero ____.", "hint": None, "options": [("agua", True), ("hola", False), ("madre", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match foods.", "source_text": None, "hint": None, "pairs": [("pan", "bread"), ("leche", "milk"), ("arroz", "rice"), ("manzana", "apple") ]},
+                    ]},
+                    {"position": 2, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'leche' mean?", "source_text": None, "hint": None, "options": [("Milk", True), ("Bread", False), ("Coffee", False), ("Cheese", False)]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'apple' in Spanish.", "source_text": "Apple", "hint": None, "answers": ["manzana"]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "I want milk.", "hint": None, "options": [("Quiero", False, 1), ("leche", False, 2), ("pan", False, None)], "answers": ["Quiero leche."]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the drink.", "source_text": "Bebo ____.", "hint": None, "options": [("agua", True), ("familia", False), ("casa", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match simple foods.", "source_text": None, "hint": None, "pairs": [("queso", "cheese"), ("café", "coffee"), ("té", "tea"), ("jugo", "juice") ]},
+                    ]},
+                ],
+            },
+            {
+                "position": 2, "title": "Home", "skill_type": "LESSON", "icon_type": "BOOK",
+                "lessons": [
+                    {"position": 1, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'casa' mean?", "source_text": None, "hint": None, "options": [("House", True), ("School", False), ("Family", False), ("Food", False)]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'room' in Spanish.", "source_text": "Room", "hint": None, "answers": ["habitación", "habitacion"]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "My house is small.", "hint": None, "options": [("Mi", False, 1), ("casa", False, 2), ("es", False, 3), ("pequeña", False, 4), ("grande", False, None)], "answers": ["Mi casa es pequeña."]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the home sentence.", "source_text": "Estoy en la ____.", "hint": None, "options": [("casa", True), ("comida", False), ("familia", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match home words.", "source_text": None, "hint": None, "pairs": [("puerta", "door"), ("mesa", "table"), ("silla", "chair"), ("cama", "bed") ]},
+                    ]},
+                    {"position": 2, "xp_reward": 10, "exercises": [
+                        {"type": "MULTIPLE_CHOICE", "prompt": "What does 'mesa' mean?", "source_text": None, "hint": None, "options": [("Table", True), ("Door", False), ("Chair", False), ("Bed", False)]},
+                        {"type": "TYPE_ANSWER", "prompt": "Type 'door' in Spanish.", "source_text": "Door", "hint": None, "answers": ["puerta"]},
+                        {"type": "TRANSLATE_WORD_BANK", "prompt": "Build the Spanish sentence.", "source_text": "The door is open.", "hint": None, "options": [("La", False, 1), ("puerta", False, 2), ("está", False, 3), ("abierta", False, 4), ("cerrada", False, None)], "answers": ["La puerta está abierta."]},
+                        {"type": "FILL_IN_BLANK", "prompt": "Complete the home sentence.", "source_text": "La ____ es grande.", "hint": None, "options": [("mesa", True), ("leche", False), ("madre", False)]},
+                        {"type": "MATCH_PAIRS", "prompt": "Match more home words.", "source_text": None, "hint": None, "pairs": [("ventana", "window"), ("cocina", "kitchen"), ("baño", "bathroom"), ("pared", "wall") ]},
+                    ]},
+                ],
+            },
+            {"position": 3, "title": "Treasure Chest", "skill_type": "TREASURE", "icon_type": "TREASURE", "lessons": []},
+            {"position": 4, "title": "Fast Practice", "skill_type": "PRACTICE", "icon_type": "FAST_FORWARD", "lessons": []},
+        ],
+    },
+]
+
+ACHIEVEMENTS = [
+    {"code": "STREAK_3", "name": "Three Day Streak", "description": "Complete lessons on three consecutive days.", "icon": "🔥", "metric": "STREAK_DAYS", "threshold": 3},
+    {"code": "STREAK_7", "name": "Week Warrior", "description": "Complete lessons on seven consecutive days.", "icon": "🔥", "metric": "STREAK_DAYS", "threshold": 7},
+    {"code": "XP_100", "name": "Century Club", "description": "Earn 100 XP.", "icon": "⭐", "metric": "TOTAL_XP", "threshold": 100},
+    {"code": "XP_500", "name": "XP Collector", "description": "Earn 500 XP.", "icon": "🏆", "metric": "TOTAL_XP", "threshold": 500},
+    {"code": "FIRST_LESSON", "name": "First Step", "description": "Complete your first lesson.", "icon": "🎯", "metric": "LESSONS_COMPLETED", "threshold": 1},
+    {"code": "PERFECT_LESSON", "name": "Perfect Lesson", "description": "Complete a lesson with every recorded answer correct.", "icon": "💯", "metric": "PERFECT_LESSONS", "threshold": 1},
+]
