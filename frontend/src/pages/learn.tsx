@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { NextPage } from "next";
 import { useRouter } from "next/router";
-import { AppShell } from "~/layout/AppShell";
+import { AppShell } from "~/components/layout/AppShell";
 import { SkillButton, type SkillAction } from "~/components/path/SkillButton";
 import { UnitBanner } from "~/components/path/UnitBanner";
 import { api, ApiError } from "~/lib/api";

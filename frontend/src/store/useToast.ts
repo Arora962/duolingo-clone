@@ -3,45 +3,51 @@ import { create } from "zustand";
 export type ToastTone = "info" | "success" | "error" | "warning";
 
 export type ToastItem = {
-  id: string;
+  id: number;
   message: string;
   tone: ToastTone;
+  /** Backwards-compatible alias used by the original Phase 1 UI. */
+  kind: ToastTone;
 };
 
 type ToastState = {
   toasts: ToastItem[];
-  push: (message: string, tone?: ToastTone) => string;
-  remove: (id: string) => void;
-  clear: () => void;
+  /** Backwards-compatible alias used by the Phase 3 ZIP's ToastViewport. */
+  items: ToastItem[];
+  push: (message: string, tone?: ToastTone) => void;
+  remove: (id: number) => void;
+  /** Backwards-compatible alias. */
+  dismiss: (id: number) => void;
 };
 
-let toastSequence = 0;
+let nextToastId = 1;
 
-function createToastId(): string {
-  toastSequence += 1;
-  return `toast-${Date.now()}-${toastSequence}`;
-}
+export const useToast = create<ToastState>()((set) => {
+  const remove = (id: number) => {
+    set((state) => {
+      const toasts = state.toasts.filter((toast) => toast.id !== id);
+      return { toasts, items: toasts };
+    });
+  };
 
-export const useToast = create<ToastState>()((set) => ({
-  toasts: [],
+  const push = (message: string, tone: ToastTone = "info") => {
+    const id = nextToastId++;
+    set((state) => {
+      const toast: ToastItem = { id, message, tone, kind: tone };
+      const toasts = [...state.toasts, toast].slice(-3);
+      return { toasts, items: toasts };
+    });
 
-  push: (message, tone = "info") => {
-    const id = createToastId();
+    if (typeof window !== "undefined") {
+      window.setTimeout(() => remove(id), 3000);
+    }
+  };
 
-    set((state) => ({
-      toasts: [...state.toasts, { id, message, tone }],
-    }));
-
-    return id;
-  },
-
-  remove: (id) => {
-    set((state) => ({
-      toasts: state.toasts.filter((toast) => toast.id !== id),
-    }));
-  },
-
-  clear: () => {
-    set({ toasts: [] });
-  },
-}));
+  return {
+    toasts: [],
+    items: [],
+    push,
+    remove,
+    dismiss: remove,
+  };
+});
