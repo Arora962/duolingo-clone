@@ -136,6 +136,38 @@ These routes exist only when `ENABLE_DEV_ENDPOINTS=true`:
 
 - `GET /api/health`
 
+
+
+## UI compatibility layer
+
+The supplied Duolingo-style frontend uses a separate compatibility contract under
+`/compat/api/...`. It is an adapter over the existing `/api` services and the
+same frozen 15-table schema; it does not add or migrate database tables.
+
+Run the backend normally:
+
+```bash
+uvicorn app.main:app --reload
+```
+
+The frontend defaults to:
+
+```text
+NEXT_PUBLIC_API_URL=http://localhost:8000/compat
+```
+
+so its existing `/api/...` client paths resolve to `/compat/api/...`.
+
+The adapter translates the path, lesson, chest, hearts, leaderboard, guidebook,
+and explanation contracts used by the UI. The browser receives answer data for
+local grading; the existing `/api` endpoints keep their current hidden-answer
+behavior.
+
+The seeded treasure and practice nodes contain no lesson rows, so the adapter
+uses the existing `system_settings` key/value table to remember chest claims and
+Legendary badges. Practice is left as a visual path node until practice content
+is seeded. The optional jump action is currently a safe no-op.
+
 ## Architecture
 
 The backend follows a thin-router architecture: **routers → services → models**. Routers handle HTTP concerns, dependency injection, request validation, response-model serialization, and transaction commits. Services contain lesson lifecycle, answer evaluation, hearts, statistics, achievements, leaderboard, and path logic. SQLAlchemy models define the frozen 15-table relational schema and its constraints, indexes, relationships, and delete behavior. Pydantic schemas define the public request and response contracts consumed by the frontend.

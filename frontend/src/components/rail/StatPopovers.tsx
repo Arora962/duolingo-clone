@@ -93,7 +93,7 @@ export function CoursesPopover() {
           icon={<DuoAsset name="flag" height={34} />}
           href="/learn"
         >
-          <span className="text-[19px] font-extrabold text-duo-blue">English</span>
+          <span className="text-[19px] font-extrabold text-duo-blue">Spanish</span>
         </CardRow>
       </div>
       <CardRow

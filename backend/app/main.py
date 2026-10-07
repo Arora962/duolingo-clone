@@ -9,7 +9,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.config import AUTO_SEED, CORS_ORIGINS, ENABLE_DEV_ENDPOINTS
 from app.database import Base, engine
-from app.routers import hearts, leaderboard, lessons, me, path
+from app.routers import compat, hearts, leaderboard, lessons, me, path
 from app.routers import dev
 from app.seed import seed
 from app.schemas.health import HealthResponse
@@ -46,6 +46,7 @@ app.include_router(path.router, prefix="/api")
 app.include_router(lessons.router, prefix="/api")
 app.include_router(hearts.router, prefix="/api")
 app.include_router(leaderboard.router, prefix="/api")
+app.include_router(compat.router, prefix="/compat")
 
 if ENABLE_DEV_ENDPOINTS:
     app.include_router(dev.router, prefix="/api")

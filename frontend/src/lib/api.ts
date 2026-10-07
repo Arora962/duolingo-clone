@@ -16,7 +16,7 @@ import type {
   UserProfile,
 } from "./types";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/compat";
 
 /** Carries the HTTP status so callers can branch (e.g. 423 => skill locked). */
 export class ApiError extends Error {

@@ -46,7 +46,7 @@ export default function TopBar({ className = "" }: { className?: string }) {
         <div className="flex items-center gap-2">
           <DuoAsset name="flag" height={28} />
           <span className="hidden text-sm font-bold text-duo-muted sm:inline">
-            English
+            Spanish
           </span>
         </div>
 
