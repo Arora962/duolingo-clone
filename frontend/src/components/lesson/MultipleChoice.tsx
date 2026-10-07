@@ -18,11 +18,13 @@ export function MultipleChoice({ options, disabled, selectedId, onSelect }: Prop
             type="button"
             disabled={disabled}
             onClick={() => onSelect(option.id)}
-            className={`min-h-[68px] rounded-2xl border-2 px-5 py-4 text-left text-lg font-extrabold transition active:translate-y-0.5 disabled:cursor-not-allowed ${
+            className={[
+              "min-h-[68px] rounded-2xl border-2 px-5 py-4 text-left text-lg font-extrabold transition",
+              "active:translate-y-0.5 disabled:cursor-not-allowed",
               selected
-                ? "border-macaw bg-[#eaf7ff] text-macaw shadow-[0_3px_0_#1899d6]"
-                : "border-swan bg-white text-eel shadow-[0_3px_0_#e5e5e5] hover:border-hare"
-            }`}
+                ? "border-[var(--color-blue-border)] bg-[var(--color-blue-surface)] text-[var(--color-blue-text)] shadow-[0_3px_0_var(--color-blue-text)]"
+                : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_3px_0_var(--color-border)] hover:border-[var(--color-text-subtle)]",
+            ].join(" ")}
           >
             <span className="mr-3 inline-flex h-7 w-7 items-center justify-center rounded-lg border-2 border-current text-sm opacity-70">
               {String.fromCharCode(65 + index)}

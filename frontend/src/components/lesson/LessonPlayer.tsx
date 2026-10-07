@@ -1,267 +1,88 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/router";
-import { api, ApiError } from "~/lib/api";
-import type { AnswerPayload, AnswerResult, CompleteResult, Exercise, HeartsResponse, StartLessonResponse } from "~/lib/types";
-import { useLearner } from "~/store/useLearner";
+import { useEffect } from "react";
 import { ConfirmModal } from "~/components/layout/ConfirmModal";
 import { FeedbackBar } from "~/components/lesson/FeedbackBar";
+import { FillInBlank } from "~/components/lesson/FillInBlank";
+import { CheckBar } from "~/components/lesson/CheckBar";
 import { LessonCompleteModal } from "~/components/lesson/LessonCompleteModal";
 import { LessonProgress } from "~/components/lesson/LessonProgress";
 import { MatchPairs } from "~/components/lesson/MatchPairs";
 import { MultipleChoice } from "~/components/lesson/MultipleChoice";
 import { OutOfHeartsModal } from "~/components/lesson/OutOfHeartsModal";
+import { TimeExpiredModal } from "~/components/lesson/TimeExpiredModal";
 import { TypeAnswer } from "~/components/lesson/TypeAnswer";
 import { WordBank } from "~/components/lesson/WordBank";
-
-function getErrorMessage(error: unknown) {
-  return error instanceof Error ? error.message : "Something went wrong.";
-}
+import { useLessonPlayer } from "~/hooks/useLessonPlayer";
+import { useCountdown } from "~/hooks/useCountdown";
+import { useSettings } from "~/store/useSettings";
+import { playAudioOrSpeak } from "~/lib/speech";
 
 export function LessonPlayer({ lessonId }: { lessonId: number }) {
   const router = useRouter();
-  const patchLearner = useLearner((state) => state.patch);
-  const refreshMe = useLearner((state) => state.refresh);
-  const [lesson, setLesson] = useState<StartLessonResponse | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [solvedCount, setSolvedCount] = useState(0);
-  const [hearts, setHearts] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [feedback, setFeedback] = useState<AnswerResult | null>(null);
-  const [submitting, setSubmitting] = useState(false);
-  const [completeResult, setCompleteResult] = useState<CompleteResult | null>(null);
-  const [heartsModal, setHeartsModal] = useState<HeartsResponse | null>(null);
-  const [refillBusy, setRefillBusy] = useState(false);
-  const [exitOpen, setExitOpen] = useState(false);
-  const [choiceId, setChoiceId] = useState<number | null>(null);
-  const [typedAnswer, setTypedAnswer] = useState("");
-  const [selectedWords, setSelectedWords] = useState<number[]>([]);
-  const [matchedIds, setMatchedIds] = useState<Set<number>>(new Set());
-  const [selectedLeft, setSelectedLeft] = useState<number | null>(null);
-  const [selectedRight, setSelectedRight] = useState<number | null>(null);
-  const startedFor = useRef<number | null>(null);
-  const completedRef = useRef(false);
-  const abandonRef = useRef<number | null>(null);
-
-  const currentExercise: Exercise | null = lesson?.exercises[currentIndex] ?? null;
-  const isMatch = currentExercise?.type === "MATCH_PAIRS";
-
-  const resetExerciseState = useCallback(() => {
-    setChoiceId(null);
-    setTypedAnswer("");
-    setSelectedWords([]);
-    setMatchedIds(new Set());
-    setSelectedLeft(null);
-    setSelectedRight(null);
-  }, []);
-
-  const start = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setHeartsModal(null);
-    setCompleteResult(null);
-    completedRef.current = false;
-    try {
-      const result = await api.startLesson(lessonId);
-      setLesson(result);
-      setCurrentIndex(0);
-      setSolvedCount(0);
-      setHearts(result.hearts);
-      resetExerciseState();
-      startedFor.current = lessonId;
-      abandonRef.current = result.attempt_id;
-      patchLearner({ hearts: result.hearts, max_hearts: result.max_hearts });
-    } catch (e) {
-      if (e instanceof ApiError && e.code === "OUT_OF_HEARTS") {
-        const heartData = await api.hearts().catch(() => null);
-        setHeartsModal(heartData);
-      } else {
-        setError(getErrorMessage(e));
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [lessonId, patchLearner, resetExerciseState]);
+  const speechEnabled = useSettings(
+    (state) => state.settings?.sound_effects_enabled ?? true,
+  );
+  const player = useLessonPlayer(lessonId);
+  const timedSeconds = useCountdown(
+    player.lesson?.mode === "TIMED_PRACTICE" ? player.lesson.expires_at : null,
+  );
 
   useEffect(() => {
-    if (startedFor.current !== lessonId) void start();
-  }, [lessonId, start]);
-
-  useEffect(() => {
-    return () => {
-      const attemptId = abandonRef.current;
-      if (attemptId !== null && !completedRef.current) void api.abandon(attemptId).catch(() => undefined);
-    };
-  }, []);
-
-  useEffect(() => {
-    resetExerciseState();
-    setFeedback(null);
-  }, [currentIndex, resetExerciseState]);
-
-  const submit = useCallback(async (payload: AnswerPayload) => {
-    if (!lesson || !currentExercise || submitting || feedback?.is_correct) return;
-    setSubmitting(true);
-    try {
-      const result = await api.answer(lesson.attempt_id, payload);
-      setFeedback(result);
-      setHearts(result.hearts);
-      setSolvedCount(result.solved_exercises);
-      patchLearner({ hearts: result.hearts, next_heart_in_seconds: result.next_heart_in_seconds });
-      if (result.lesson_failed) {
-        const heartData = await api.hearts().catch(() => null);
-        setHeartsModal(heartData);
-      }
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setSubmitting(false);
+    if (
+      player.lesson?.mode === "TIMED_PRACTICE" &&
+      player.phase === "answering" &&
+      timedSeconds === 0 &&
+      player.lesson.expires_at
+    ) {
+      // The backend remains authoritative; this only makes the UI respond immediately.
+      player.expire();
     }
-  }, [currentExercise, feedback?.is_correct, lesson, patchLearner, submitting]);
+  }, [player, timedSeconds]);
 
-  const continueAfterFeedback = useCallback(async () => {
-    if (!feedback) return;
-    if (!feedback.is_correct) {
-      setFeedback(null);
-      if (isMatch) {
-        setSelectedLeft(null);
-        setSelectedRight(null);
-      }
-      return;
-    }
-    if (feedback.all_exercises_solved) {
-      if (!lesson) return;
-      setSubmitting(true);
-      try {
-        const result = await api.complete(lesson.attempt_id);
-        completedRef.current = true;
-        abandonRef.current = null;
-        setCompleteResult(result);
-        patchLearner({
-          total_xp: result.total_xp,
-          current_streak: result.streak_after,
-          xp_today: result.xp_today,
-          daily_goal_xp: result.daily_goal_xp,
-          daily_goal_met: result.xp_today >= result.daily_goal_xp,
-          hearts: result.hearts,
-        });
-        await refreshMe();
-      } catch (e) {
-        setError(getErrorMessage(e));
-      } finally {
-        setSubmitting(false);
-      }
-      return;
-    }
-    if (!feedback.exercise_solved) {
-      setFeedback(null);
-      return;
-    }
-    setCurrentIndex((index) => Math.min(index + 1, (lesson?.exercises.length ?? 1) - 1));
-  }, [feedback, isMatch, lesson, patchLearner, refreshMe]);
-
-  const submitChoice = (id: number) => {
-    setChoiceId(id);
-    void submit({ exercise_id: currentExercise!.id, option_id: id });
-  };
-
-  const submitWords = () => {
-    if (!currentExercise || currentExercise.type !== "TRANSLATE_WORD_BANK") return;
-    void submit({ exercise_id: currentExercise.id, option_ids: selectedWords });
-  };
-
-  const submitTyped = () => {
-    if (!currentExercise || (currentExercise.type !== "TYPE_ANSWER" && !(currentExercise.type === "FILL_IN_BLANK" && currentExercise.requires_typing))) return;
-    void submit({ exercise_id: currentExercise.id, text: typedAnswer });
-  };
-
-  const selectLeft = (id: number) => {
-    if (submitting || feedback || matchedIds.has(id)) return;
-    setSelectedLeft(id);
-    if (selectedRight !== null && currentExercise?.type === "MATCH_PAIRS") {
-      void submit({ exercise_id: currentExercise.id, left_option_id: id, right_option_id: selectedRight });
-    }
-  };
-
-  const selectRight = (id: number) => {
-    if (submitting || feedback || matchedIds.has(id)) return;
-    setSelectedRight(id);
-    if (selectedLeft !== null && currentExercise?.type === "MATCH_PAIRS") {
-      void submit({ exercise_id: currentExercise.id, left_option_id: selectedLeft, right_option_id: id });
-    }
-  };
-
-  useEffect(() => {
-    if (!feedback || !isMatch || !feedback.is_correct || !currentExercise || currentExercise.type !== "MATCH_PAIRS") return;
-    if (selectedLeft !== null && selectedRight !== null) {
-      setMatchedIds((old) => {
-        const next = new Set(old);
-        next.add(selectedLeft);
-        next.add(selectedRight);
-        return next;
-      });
-      setSelectedLeft(null);
-      setSelectedRight(null);
-    }
-  }, [currentExercise, feedback, isMatch, selectedLeft, selectedRight]);
-
-  const refillAndRestart = async () => {
-    setRefillBusy(true);
-    try {
-      const result = await api.refillHearts("GEMS");
-      patchLearner({ hearts: result.hearts, gems: result.gems, next_heart_in_seconds: result.next_heart_in_seconds });
-      setHearts(result.hearts);
-      setHeartsModal(null);
-      startedFor.current = null;
-      abandonRef.current = null;
-      await start();
-    } catch (e) {
-      setError(getErrorMessage(e));
-    } finally {
-      setRefillBusy(false);
-    }
-  };
-
-  const abandonAndExit = async () => {
-    const attemptId = abandonRef.current;
-    if (attemptId !== null) await api.abandon(attemptId).catch(() => undefined);
-    abandonRef.current = null;
-    completedRef.current = true;
-    router.push("/learn");
-  };
-
-  const heading = useMemo(() => {
-    if (!currentExercise) return "";
-    if (currentExercise.type === "TYPE_ANSWER") return currentExercise.prompt;
-    return currentExercise.prompt;
-  }, [currentExercise]);
-
-  if (loading) {
+  if (player.phase === "loading") {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-white px-6">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-6">
         <div className="w-full max-w-md text-center">
-          <div className="mx-auto h-16 w-16 animate-bounce rounded-full bg-feather shadow-btn-green" />
-          <p className="mt-7 text-lg font-black text-wolf">Loading your lesson…</p>
+          <div className="mx-auto h-16 w-16 animate-duo-bounce rounded-full bg-[var(--color-green-text)] shadow-btn-green" />
+          <p className="mt-7 text-lg font-black text-[var(--color-text-muted)]">Loading your lesson…</p>
         </div>
       </main>
     );
   }
 
-  if (heartsModal) {
-    return <OutOfHeartsModal hearts={heartsModal} busy={refillBusy} onRefill={refillAndRestart} onExit={() => router.push("/learn")} />;
+  if (player.heartsModal) {
+    return (
+      <OutOfHeartsModal
+        hearts={player.heartsModal}
+        busy={player.refillBusy}
+        onRefillGems={() => void player.refill("GEMS")}
+        onPractice={() => void player.refill("PRACTICE")}
+        onExit={() => void router.push("/learn")}
+      />
+    );
   }
 
-  if (error || !lesson || !currentExercise) {
+  if (player.phase === "error" || !player.lesson || !player.currentExercise) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-white px-6">
-        <div className="w-full max-w-md rounded-3xl border-2 border-swan bg-white p-7 text-center shadow-sm">
+      <main className="flex min-h-screen items-center justify-center bg-[var(--color-background)] px-6">
+        <div className="w-full max-w-md rounded-3xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] p-7 text-center shadow-duo-soft">
           <div className="text-5xl">🦉</div>
-          <h1 className="mt-3 text-2xl font-black text-eel">We hit a snag</h1>
-          <p className="mt-2 font-bold text-wolf">{error ?? "This lesson is not available right now."}</p>
-          <button onClick={() => void start()} className="mt-6 w-full rounded-xl bg-macaw px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-btn-blue active:translate-y-1 active:shadow-none">
+          <h1 className="mt-3 text-2xl font-black text-[var(--color-text)]">We hit a snag</h1>
+          <p className="mt-2 font-bold text-[var(--color-text-muted)]">
+            {player.error ?? "This lesson is not available right now."}
+          </p>
+          <button
+            type="button"
+            onClick={player.retry}
+            className="mt-6 w-full rounded-xl bg-[var(--color-blue-border)] px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-btn-blue active:translate-y-1 active:shadow-none"
+          >
             Try again
           </button>
-          <button onClick={() => router.push("/learn")} className="mt-2 w-full rounded-xl px-6 py-3 text-sm font-black uppercase text-wolf hover:bg-polar">
+          <button
+            type="button"
+            onClick={() => void router.push("/learn")}
+            className="mt-2 w-full rounded-xl px-6 py-3 text-sm font-black uppercase text-[var(--color-text-muted)] hover:bg-[var(--color-surface-raised)]"
+          >
             Back to path
           </button>
         </div>
@@ -269,119 +90,164 @@ export function LessonPlayer({ lessonId }: { lessonId: number }) {
     );
   }
 
+  const exercise = player.currentExercise;
+  const isMatch = exercise.type === "MATCH_PAIRS";
+  const showCheck =
+    player.phase === "answering" &&
+    !isMatch;
+
   return (
-    <main className="min-h-screen bg-white pb-40 text-eel">
+    <main className="min-h-screen bg-[var(--color-background)] pb-32 text-[var(--color-text)]">
       <LessonProgress
-        exercises={lesson.exercises}
-        currentIndex={currentIndex}
-        solvedCount={solvedCount}
-        hearts={hearts}
-        maxHearts={lesson.max_hearts}
-        onExit={() => setExitOpen(true)}
+        exercises={player.lesson.exercises}
+        currentIndex={player.queueIndex}
+        solvedCount={player.solvedCount}
+        hearts={player.hearts}
+        maxHearts={player.lesson.max_hearts}
+        timedSeconds={
+          player.lesson.mode === "TIMED_PRACTICE" ? timedSeconds : undefined
+        }
+        onExit={() => player.setExitOpen(true)}
       />
-      <div className="mx-auto w-full max-w-3xl px-5 pb-10 pt-10 sm:px-8 sm:pt-16">
-        <div className="mb-9 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-black uppercase tracking-wider text-wolf">{lesson.skill.title}</p>
-            <h1 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">{heading}</h1>
+
+      <div className="mx-auto w-full max-w-3xl px-5 pb-10 pt-6 sm:px-8 sm:pt-10">
+        <div className="mb-8 flex items-start gap-4">
+          <div className="hidden sm:block">
+            <div className="relative">
+              <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 text-sm font-extrabold shadow-duo-soft">
+                Let’s do this!
+              </div>
+              <span className="absolute -bottom-2 left-7 h-4 w-4 rotate-45 border-b-2 border-r-2 border-[var(--color-border)] bg-[var(--color-surface)]" />
+            </div>
           </div>
-          {lesson.mode === "TIMED_PRACTICE" && lesson.expires_at && (
-            <div className="rounded-xl bg-polar px-3 py-2 text-sm font-black text-fox">⏱ Practice</div>
-          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-black uppercase tracking-wider text-[var(--color-text-muted)]">
+              {player.lesson.skill.title}
+            </p>
+            <h1 className="mt-2 text-2xl font-black leading-tight sm:text-3xl">
+              {exercise.prompt}
+            </h1>
+            {(exercise.audio_url || exercise.source_text || exercise.prompt) && (
+              <button
+                type="button"
+                aria-label="Play prompt audio"
+                onClick={() =>
+                  playAudioOrSpeak(
+                    exercise.audio_url,
+                    exercise.source_text ?? exercise.prompt,
+                    "en-US",
+                    speechEnabled,
+                  )
+                }
+                className="mt-3 inline-flex h-11 w-11 items-center justify-center rounded-full border-2 border-[var(--color-blue-border)] bg-[var(--color-blue-surface)] text-xl"
+              >
+                🔊
+              </button>
+            )}
+          </div>
         </div>
 
-        {currentExercise.source_text && (
-          <div className="mb-7 rounded-2xl bg-polar px-5 py-4 text-lg font-extrabold text-eel">
-            {currentExercise.source_text}
+        {exercise.source_text && (
+          <div className="mb-7 rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface-raised)] px-5 py-4 text-lg font-extrabold">
+            {exercise.source_text}
           </div>
         )}
 
         <div className="flex justify-center">
-          {currentExercise.type === "MULTIPLE_CHOICE" && (
+          {exercise.type === "MULTIPLE_CHOICE" && (
             <MultipleChoice
-              options={currentExercise.options}
-              disabled={submitting || feedback !== null}
-              selectedId={choiceId}
-              onSelect={submitChoice}
+              options={exercise.options}
+              disabled={player.phase !== "answering"}
+              selectedId={player.choiceId}
+              onSelect={player.selectChoice}
             />
           )}
-          {currentExercise.type === "FILL_IN_BLANK" && currentExercise.options && (
-            <MultipleChoice
-              options={currentExercise.options}
-              disabled={submitting || feedback !== null}
-              selectedId={choiceId}
-              onSelect={submitChoice}
+
+          {exercise.type === "FILL_IN_BLANK" && (
+            <FillInBlank
+              exercise={exercise}
+              disabled={player.phase !== "answering"}
+              selectedId={player.choiceId}
+              typedAnswer={player.typedAnswer}
+              onSelect={player.selectChoice}
+              onType={player.setTypedAnswer}
             />
           )}
-          {currentExercise.type === "FILL_IN_BLANK" && currentExercise.requires_typing && (
+
+          {exercise.type === "TYPE_ANSWER" && (
             <TypeAnswer
-              value={typedAnswer}
-              disabled={submitting || feedback !== null}
-              onChange={setTypedAnswer}
-              onSubmit={submitTyped}
+              value={player.typedAnswer}
+              disabled={player.phase !== "answering"}
+              onChange={player.setTypedAnswer}
             />
           )}
-          {currentExercise.type === "TYPE_ANSWER" && (
-            <TypeAnswer
-              value={typedAnswer}
-              disabled={submitting || feedback !== null}
-              onChange={setTypedAnswer}
-              onSubmit={submitTyped}
-            />
-          )}
-          {currentExercise.type === "TRANSLATE_WORD_BANK" && (
+
+          {exercise.type === "TRANSLATE_WORD_BANK" && (
             <WordBank
-              tiles={currentExercise.tiles}
-              selectedIds={selectedWords}
-              disabled={submitting || feedback !== null}
-              onToggle={(id) => setSelectedWords((ids) => ids.includes(id) ? ids.filter((item) => item !== id) : [...ids, id])}
-              onSubmit={submitWords}
+              tiles={exercise.tiles}
+              selectedIds={player.selectedWords}
+              disabled={player.phase !== "answering"}
+              onToggle={player.toggleWord}
             />
           )}
-          {currentExercise.type === "MATCH_PAIRS" && (
+
+          {exercise.type === "MATCH_PAIRS" && (
             <MatchPairs
-              left={currentExercise.left}
-              right={currentExercise.right}
-              matchedIds={matchedIds}
-              selectedLeft={selectedLeft}
-              selectedRight={selectedRight}
-              disabled={submitting || feedback !== null}
-              onSelectLeft={selectLeft}
-              onSelectRight={selectRight}
+              left={exercise.left}
+              right={exercise.right}
+              matchedIds={player.matchedIds}
+              shakeIds={player.shakeIds}
+              selectedLeft={player.selectedLeft}
+              selectedRight={player.selectedRight}
+              disabled={player.phase !== "answering"}
+              onSelectLeft={player.selectLeft}
+              onSelectRight={player.selectRight}
             />
           )}
         </div>
       </div>
 
-      {feedback && (
-        <FeedbackBar
-          correct={feedback.is_correct}
-          correctAnswer={feedback.correct_answer}
-          speakText={feedback.speak_text}
-          onContinue={continueAfterFeedback}
-          onRetry={() => {
-            setFeedback(null);
-            setChoiceId(null);
-            if (isMatch) {
-              setSelectedLeft(null);
-              setSelectedRight(null);
-            }
-          }}
-          finalStep={feedback.is_correct && feedback.all_exercises_solved}
+      {showCheck && (
+        <CheckBar
+          ready={player.ready}
+          checking={player.phase === "checking"}
+          onCheck={player.submitCurrent}
         />
       )}
 
-      {completeResult && (
-        <LessonCompleteModal result={completeResult} onContinue={() => router.push("/learn")} />
+      {player.feedback && (
+        <FeedbackBar
+          correct={player.feedback.is_correct}
+          correctAnswer={player.feedback.correct_answer}
+          speakText={player.feedback.speak_text}
+          speakLang={player.feedback.speak_lang}
+          speechEnabled={speechEnabled}
+          onContinue={() => void player.continueAfterFeedback()}
+          finalStep={player.feedback.is_correct && player.feedback.all_exercises_solved}
+        />
       )}
 
+      {player.completeResult && (
+        <LessonCompleteModal
+          result={player.completeResult}
+          onContinue={() => void router.push("/learn")}
+        />
+      )}
+
+      <TimeExpiredModal
+        open={player.timeExpired}
+        onRetry={player.retry}
+        onExit={() => void router.push("/learn")}
+      />
+
       <ConfirmModal
-        open={exitOpen}
-        title="Leave this lesson?"
+        open={player.exitOpen}
+        title="Are you sure you want to quit?"
         description="Your current lesson attempt will be abandoned. You can start it again from the path."
-        confirmLabel="Leave lesson"
-        onCancel={() => setExitOpen(false)}
-        onConfirm={() => void abandonAndExit()}
+        confirmLabel="Quit"
+        cancelLabel="Keep learning"
+        onCancel={() => player.setExitOpen(false)}
+        onConfirm={() => void player.abandonAndExit()}
       />
     </main>
   );

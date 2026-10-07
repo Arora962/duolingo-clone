@@ -20,6 +20,7 @@
   --color-red-text: #ea2b2b;
   --color-overlay: rgba(0, 0, 0, 0.48);
   --color-focus: #1cb0f6;
+  --color-orange-text: #ff9600;
   --page-gutter: 24px;
   --sidebar-width: 256px;
 }
@@ -42,6 +43,7 @@ html.dark {
   --color-red-text: #ff6b6b;
   --color-overlay: rgba(0, 0, 0, 0.68);
   --color-focus: #5fc8ff;
+  --color-orange-text: #ffb14d;
 }
 
 html {

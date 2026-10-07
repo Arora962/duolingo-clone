@@ -3,6 +3,7 @@ import { Button3D } from "~/components/ui/Button3D";
 import { ConfirmModal } from "~/components/layout/ConfirmModal";
 import { Icon, type IconName } from "~/components/ui/Icons";
 import { formatCountdown, useCountdown } from "~/hooks/useCountdown";
+import { useOutsideClick } from "~/hooks/useOutsideClick";
 import { ApiError, api } from "~/lib/api";
 import { useLearner } from "~/store/useLearner";
 import { useToast } from "~/store/useToast";
@@ -23,40 +24,17 @@ const META: Record<
   hearts: { title: "Hearts", icon: "heart", iconClass: "text-cardinal" },
 };
 
-function useOutsideDismiss(
-  containerRef: RefObject<HTMLDivElement>,
-  onClose: () => void,
-) {
-  useEffect(() => {
-    const handlePointerDown = (event: PointerEvent) => {
-      const target = event.target;
-      if (
-        target instanceof Node &&
-        !containerRef.current?.contains(target)
-      ) {
-        onClose();
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-
-    document.addEventListener("pointerdown", handlePointerDown);
-    document.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.removeEventListener("pointerdown", handlePointerDown);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [containerRef, onClose]);
-}
-
 export function StatPopover({ kind, onClose }: StatPopoverProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  useOutsideDismiss(containerRef, onClose);
+  useOutsideClick(containerRef, onClose);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [onClose]);
 
   if (kind === "streak") {
     return <StreakPopover containerRef={containerRef} />;

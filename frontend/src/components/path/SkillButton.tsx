@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { NodeState, SkillNode as SkillData } from "~/lib/types";
 import { SkillGlyph } from "~/components/path/SkillGlyph";
+import { NodePopover } from "~/components/path/NodePopover";
+import { ChestReward } from "~/components/path/ChestReward";
 
 const PALETTE: Record<NodeState, { bg: string; edge: string; glyph: string }> = {
   COMPLETED: { bg: "#ffc800", edge: "#e5b400", glyph: "#ffffff" },
@@ -15,18 +17,22 @@ export type SkillAction =
 type Props = {
   skill: SkillData;
   offset: number;
+  marginTop: number;
+  marginBottom: number;
   open: boolean;
   busy: boolean;
   onToggle: () => void;
   onAction: (action: SkillAction) => void;
 };
 
-const RING_R = 40;
+const RING_R = 42;
 const RING_LEN = 2 * Math.PI * RING_R;
 
 export function SkillButton({
   skill,
   offset,
+  marginTop,
+  marginBottom,
   open,
   busy,
   onToggle,
@@ -38,12 +44,10 @@ export function SkillButton({
   const done = skill.state === "COMPLETED";
   const isTreasure = skill.skill_type === "TREASURE";
   const isPractice = skill.skill_type === "PRACTICE";
-
   const lessonId = skill.next_lesson_id ?? skill.lessons[0]?.id ?? null;
   const nextXp =
-    skill.lessons.find((l) => l.id === skill.next_lesson_id)?.xp_reward ?? 0;
+    skill.lessons.find((lesson) => lesson.id === skill.next_lesson_id)?.xp_reward ?? 0;
 
-  // ----- popover content -----
   let subtitle = "";
   let cta = "";
   let canAct = !locked;
@@ -56,17 +60,11 @@ export function SkillButton({
     canAct = !done;
   } else if (isPractice) {
     subtitle = "Timed practice · 3 minutes";
-    cta = done ? "Practice again" : "Start practice";
+    cta = "Start practice";
   } else {
-    subtitle = `Lesson ${Math.min(
-      skill.lessons_completed + 1,
-      skill.lessons_total,
-    )} of ${skill.lessons_total}`;
+    subtitle = `Lesson ${Math.min(skill.lessons_completed + 1, skill.lessons_total)} of ${skill.lessons_total} · Crowns ${skill.crowns}/${skill.crowns_max}`;
     cta = done ? "Practice again" : `Start +${nextXp} XP`;
   }
-
-  const cardBg = locked ? "#e5e5e5" : isTreasure ? "#1cb0f6" : p.bg;
-  const cardText = locked ? "#777777" : "#ffffff";
 
   const handleAction = () => {
     if (!canAct || busy) return;
@@ -76,20 +74,20 @@ export function SkillButton({
 
   return (
     <div
-      className="relative flex h-[104px] w-full items-center justify-center"
+      className="relative flex w-full items-center justify-center"
       style={{
+        height: 89,
+        marginTop,
+        marginBottom,
         transform: `translateX(${offset}px)`,
         zIndex: open ? 30 : 1,
       }}
     >
-      {/* floating START bubble above the current skill */}
       {skill.is_current && !locked && !open && !isTreasure && (
-        <div className="pointer-events-none absolute -top-1 left-0 right-0 flex justify-center">
-          <div className="animate-bounce">
-            <div className="relative rounded-xl border-2 border-swan bg-white px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-feather">
-              Start
-              <span className="absolute -bottom-[7px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-swan bg-white" />
-            </div>
+        <div className="pointer-events-none absolute -top-8 left-0 right-0 flex justify-center">
+          <div className="animate-duo-bounce relative rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-2 text-sm font-extrabold uppercase tracking-wide text-[var(--color-green-text)] shadow-duo-soft">
+            Start
+            <span className="absolute -bottom-[7px] left-1/2 h-3 w-3 -translate-x-1/2 rotate-45 border-b-2 border-r-2 border-[var(--color-border)] bg-[var(--color-surface)]" />
           </div>
         </div>
       )}
@@ -98,40 +96,27 @@ export function SkillButton({
         <button
           type="button"
           aria-label={skill.title}
-          onClick={(e) => {
-            e.stopPropagation();
+          onPointerDown={(event) => event.stopPropagation()}
+          onClick={(event) => {
+            event.stopPropagation();
             onToggle();
           }}
-          className={`text-[64px] leading-none transition-transform active:scale-95 ${
-            locked ? "opacity-50 grayscale" : done ? "opacity-70" : ""
-          }`}
+          className="transition-transform active:scale-95"
         >
-          🎁
+          <ChestReward claimed={done} />
         </button>
       ) : (
-        <div className="relative mt-4 flex h-[92px] w-[92px] items-center justify-center">
-          {/* progress ring on the current skill */}
+        <div className="relative flex h-[93px] w-[93px] items-center justify-center">
           {skill.is_current && !locked && (
-            <svg
-              className="absolute inset-0 -rotate-90"
-              viewBox="0 0 92 92"
-              aria-hidden
-            >
+            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 93 93" aria-hidden>
+              <circle cx="46.5" cy="46.5" r={RING_R} fill="none" stroke="var(--color-border)" strokeWidth="8" />
               <circle
-                cx="46"
-                cy="46"
-                r={RING_R}
-                fill="none"
-                stroke="#e5e5e5"
-                strokeWidth="6"
-              />
-              <circle
-                cx="46"
-                cy="46"
+                cx="46.5"
+                cy="46.5"
                 r={RING_R}
                 fill="none"
                 stroke="#58cc02"
-                strokeWidth="6"
+                strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={`${RING_LEN * skill.progress_ratio} ${RING_LEN}`}
               />
@@ -140,11 +125,14 @@ export function SkillButton({
           <button
             type="button"
             aria-label={skill.title}
-            onClick={(e) => {
-              e.stopPropagation();
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              setPressed(true);
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
               onToggle();
             }}
-            onPointerDown={() => setPressed(true)}
             onPointerUp={() => setPressed(false)}
             onPointerLeave={() => setPressed(false)}
             className="flex h-[70px] w-[70px] items-center justify-center rounded-full transition-transform"
@@ -155,37 +143,24 @@ export function SkillButton({
             }}
           >
             <SkillGlyph type={skill.icon_type} color={p.glyph} />
+            {done && (
+              <span className="absolute -right-1 -top-1 flex h-7 w-7 items-center justify-center rounded-full border-2 border-[var(--color-surface)] bg-[var(--color-bee)] text-xs font-black text-white">
+                ✓
+              </span>
+            )}
           </button>
         </div>
       )}
 
-      {/* popover card */}
-      {open && (
-        <div
-          onClick={(e) => e.stopPropagation()}
-          className="absolute left-1/2 top-full z-30 mt-1 w-[280px] -translate-x-1/2 rounded-2xl p-4"
-          style={{ backgroundColor: cardBg, color: cardText }}
-        >
-          <span
-            className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rotate-45 rounded-sm"
-            style={{ backgroundColor: cardBg }}
-          />
-          <p className="text-xl font-extrabold">{skill.title}</p>
-          <p className="mt-0.5 text-base font-bold opacity-90">{subtitle}</p>
-          <button
-            type="button"
-            disabled={!canAct || busy}
-            onClick={handleAction}
-            className="mt-3 w-full rounded-xl bg-white py-3 text-base font-extrabold uppercase tracking-wide transition-transform active:translate-y-1 disabled:cursor-not-allowed disabled:opacity-60"
-            style={{
-              color: locked ? "#afafaf" : cardBg,
-              boxShadow: "0 4px 0 rgba(0,0,0,0.18)",
-            }}
-          >
-            {busy ? "…" : cta}
-          </button>
-        </div>
-      )}
+      <NodePopover
+        open={open}
+        title={skill.title}
+        subtitle={subtitle}
+        cta={cta}
+        disabled={!canAct || busy}
+        onClose={onToggle}
+        onAction={handleAction}
+      />
     </div>
   );
 }

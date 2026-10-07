@@ -4,6 +4,7 @@ type Props = {
   left: Item[];
   right: Item[];
   matchedIds: Set<number>;
+  shakeIds: Set<number>;
   selectedLeft: number | null;
   selectedRight: number | null;
   disabled: boolean;
@@ -11,19 +12,24 @@ type Props = {
   onSelectRight: (id: number) => void;
 };
 
-const buttonClass = (selected: boolean, matched: boolean) =>
-  `min-h-[64px] rounded-2xl border-2 px-4 py-3 text-center text-base font-extrabold transition active:translate-y-0.5 ${
+function buttonClass(selected: boolean, matched: boolean, shaking: boolean): string {
+  return [
+    "min-h-[64px] w-full rounded-2xl border-2 px-4 py-3 text-center text-base font-extrabold",
+    "transition active:translate-y-0.5",
     matched
-      ? "border-feather bg-[#efffe7] text-feather"
+      ? "border-[var(--color-green-text)] bg-[var(--color-green-surface)] text-[var(--color-green-text)]"
       : selected
-        ? "border-macaw bg-[#eaf7ff] text-macaw shadow-[0_3px_0_#1899d6]"
-        : "border-swan bg-white text-eel shadow-[0_3px_0_#e5e5e5] hover:border-hare"
-  }`;
+        ? "border-[var(--color-blue-border)] bg-[var(--color-blue-surface)] text-[var(--color-blue-text)] shadow-[0_3px_0_var(--color-blue-text)]"
+        : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text)] shadow-[0_3px_0_var(--color-border)] hover:border-[var(--color-text-subtle)]",
+    shaking ? "animate-duo-shake border-[var(--color-red-text)] bg-[var(--color-red-surface)]" : "",
+  ].join(" ");
+}
 
 export function MatchPairs({
   left,
   right,
   matchedIds,
+  shakeIds,
   selectedLeft,
   selectedRight,
   disabled,
@@ -39,7 +45,11 @@ export function MatchPairs({
             type="button"
             disabled={disabled || matchedIds.has(item.id)}
             onClick={() => onSelectLeft(item.id)}
-            className={`w-full ${buttonClass(selectedLeft === item.id, matchedIds.has(item.id))}`}
+            className={buttonClass(
+              selectedLeft === item.id,
+              matchedIds.has(item.id),
+              shakeIds.has(item.id),
+            )}
           >
             {item.text}
           </button>
@@ -52,7 +62,11 @@ export function MatchPairs({
             type="button"
             disabled={disabled || matchedIds.has(item.id)}
             onClick={() => onSelectRight(item.id)}
-            className={`w-full ${buttonClass(selectedRight === item.id, matchedIds.has(item.id))}`}
+            className={buttonClass(
+              selectedRight === item.id,
+              matchedIds.has(item.id),
+              shakeIds.has(item.id),
+            )}
           >
             {item.text}
           </button>

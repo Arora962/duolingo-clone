@@ -3,18 +3,16 @@ type Props = {
   placeholder?: string;
   disabled: boolean;
   onChange: (value: string) => void;
-  onSubmit: () => void;
 };
 
-export function TypeAnswer({ value, placeholder = "Type your answer", disabled, onChange, onSubmit }: Props) {
+export function TypeAnswer({
+  value,
+  placeholder = "Type your answer",
+  disabled,
+  onChange,
+}: Props) {
   return (
-    <form
-      className="w-full"
-      onSubmit={(event) => {
-        event.preventDefault();
-        onSubmit();
-      }}
-    >
+    <div className="w-full">
       <label className="sr-only" htmlFor="lesson-answer">
         Your answer
       </label>
@@ -27,15 +25,8 @@ export function TypeAnswer({ value, placeholder = "Type your answer", disabled, 
         disabled={disabled}
         onChange={(event) => onChange(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-2xl border-2 border-swan bg-white px-5 py-4 text-xl font-extrabold text-eel outline-none transition placeholder:text-hare focus:border-macaw focus:ring-4 focus:ring-[#dff3ff] disabled:bg-polar"
+        className="w-full rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 text-xl font-extrabold text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-text-subtle)] focus:border-[var(--color-blue-border)] focus:ring-4 focus:ring-[var(--color-blue-surface)] disabled:bg-[var(--color-surface-raised)]"
       />
-      <button
-        type="submit"
-        disabled={disabled || !value.trim()}
-        className="mt-4 w-full rounded-xl bg-macaw px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-btn-blue transition active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        Check
-      </button>
-    </form>
+    </div>
   );
 }

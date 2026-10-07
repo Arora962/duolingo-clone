@@ -1,39 +1,60 @@
+import { Modal } from "~/components/ui/Modal";
+import { Button3D } from "~/components/ui/Button3D";
+import { useCountdown, formatCountdown } from "~/hooks/useCountdown";
 import type { HeartsResponse } from "~/lib/types";
 
 type Props = {
   hearts: HeartsResponse | null;
   busy: boolean;
-  onRefill: () => void;
+  onRefillGems: () => void;
+  onPractice: () => void;
   onExit: () => void;
 };
 
-export function OutOfHeartsModal({ hearts, busy, onRefill, onExit }: Props) {
-  const cost = hearts?.refill_cost_gems ?? 350;
+export function OutOfHeartsModal({
+  hearts,
+  busy,
+  onRefillGems,
+  onPractice,
+  onExit,
+}: Props) {
+  const cost = hearts?.refill_cost_gems ?? 100;
   const gems = hearts?.gems ?? 0;
   const canRefill = gems >= cost;
+  const regen = useCountdown(hearts?.next_heart_in_seconds ?? 0);
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/45 px-4 py-8">
-      <div className="w-full max-w-md rounded-3xl bg-white p-7 text-center shadow-2xl">
-        <div className="text-6xl">💔</div>
-        <h1 className="mt-3 text-3xl font-black text-eel">Out of hearts</h1>
-        <p className="mt-2 font-bold text-wolf">No worries. Refill your hearts and give the lesson another try.</p>
-        <div className="mt-6 rounded-2xl bg-polar p-4">
-          <p className="font-black text-eel">💎 {gems} gems</p>
-          <p className="mt-1 text-sm font-extrabold text-wolf">Full refill: {cost} gems</p>
+    <Modal open title="Out of hearts" onClose={onExit} widthClassName="max-w-md">
+      <div className="text-center">
+        <div className="text-6xl" aria-hidden>💔</div>
+        <p className="mt-3 font-extrabold text-[var(--color-text-muted)]">
+          You can refill with gems, practice to earn one heart, or wait for regeneration.
+        </p>
+
+        <div className="mt-5 rounded-2xl bg-[var(--color-surface-raised)] p-4">
+          <p className="font-black text-[var(--color-text)]">💎 {gems} gems</p>
+          <p className="mt-1 text-sm font-extrabold text-[var(--color-text-muted)]">
+            Full refill: {cost} gems
+          </p>
+          {regen > 0 && (
+            <p className="mt-2 text-sm font-black text-[var(--color-red-text)]">
+              Next heart in {formatCountdown(regen)}
+            </p>
+          )}
         </div>
-        <button
-          type="button"
-          disabled={busy || !canRefill}
-          onClick={onRefill}
-          className="mt-5 w-full rounded-xl bg-macaw px-6 py-4 text-sm font-black uppercase tracking-wide text-white shadow-btn-blue active:translate-y-1 active:shadow-none disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {busy ? "Refilling…" : canRefill ? "Refill & try again" : "Not enough gems"}
-        </button>
-        <button type="button" onClick={onExit} className="mt-3 w-full rounded-xl px-6 py-3 text-sm font-black uppercase tracking-wide text-wolf hover:bg-polar">
-          Back to path
-        </button>
+
+        <div className="mt-5 grid gap-3">
+          <Button3D tone="blue" fullWidth disabled={busy || !canRefill} onClick={onRefillGems}>
+            {busy ? "Refilling…" : canRefill ? `Refill for ${cost} gems` : "Not enough gems"}
+          </Button3D>
+          <Button3D tone="green" fullWidth disabled={busy} onClick={onPractice}>
+            Practice to earn a heart
+          </Button3D>
+          <Button3D tone="neutral" fullWidth onClick={onExit}>
+            No thanks
+          </Button3D>
+        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
