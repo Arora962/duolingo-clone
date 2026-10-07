@@ -4,7 +4,7 @@ A full-stack clone of the Duolingo web app. A learner walks a skill path, comple
 
 The seeded course is **Spanish for English speakers** (2 units, 8 skills). It is deliberately small, because the focus is the lesson loop and the gamification rules.
 
-> **Live demo:** _add deployed URL_  ·  **Repository:** _add GitHub URL_
+> **Live demo:** https://duolingo-clone-gamma-five.vercel.app/learn
 
 ## Documentation map
 
@@ -76,6 +76,7 @@ Browser ──► Next.js (frontend/) ──fetch──► FastAPI (backend/) �
   - `/api` is the native contract. It hides answers and grades each answer on the server.
   - `/compat` is a UI adapter. It returns the shapes the Duolingo-style frontend needs, with local answer checking in the browser.
   - Details are in [`backend/README.md`](backend/README.md#api-and-compat-two-api-surfaces).
+- The detailed system architecture is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 ## Database schema (summary)
 
