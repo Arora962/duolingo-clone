@@ -2,14 +2,242 @@
 @tailwind components;
 @tailwind utilities;
 
-html,
+:root {
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f7f7f7;
+  --color-text: #4b4b4b;
+  --color-text-muted: #777777;
+  --color-text-subtle: #afafaf;
+  --color-border: #e5e5e5;
+  --color-border-strong: #d5d5d5;
+  --color-blue-surface: #ddf4ff;
+  --color-blue-border: #1cb0f6;
+  --color-blue-text: #1899d6;
+  --color-green-surface: #d7ffb8;
+  --color-green-text: #58a700;
+  --color-red-surface: #ffdfe0;
+  --color-red-text: #ea2b2b;
+  --color-overlay: rgba(0, 0, 0, 0.48);
+  --color-focus: #1cb0f6;
+  --page-gutter: 24px;
+  --sidebar-width: 256px;
+}
+
+html.dark {
+  --color-background: #181818;
+  --color-surface: #242424;
+  --color-surface-raised: #303030;
+  --color-text: #f7f7f7;
+  --color-text-muted: #c7c7c7;
+  --color-text-subtle: #999999;
+  --color-border: #414141;
+  --color-border-strong: #555555;
+  --color-blue-surface: #143b4e;
+  --color-blue-border: #1cb0f6;
+  --color-blue-text: #5fc8ff;
+  --color-green-surface: #1f3d12;
+  --color-green-text: #7ee42e;
+  --color-red-surface: #4a2022;
+  --color-red-text: #ff6b6b;
+  --color-overlay: rgba(0, 0, 0, 0.68);
+  --color-focus: #5fc8ff;
+}
+
+html {
+  min-width: 320px;
+  background: var(--color-background);
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 body {
-  background: #ffffff;
-  color: #4b4b4b;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--color-background);
+  color: var(--color-text);
   font-family: "Nunito", system-ui, sans-serif;
   font-weight: 700;
+  text-rendering: optimizeLegibility;
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: "Nunito", system-ui, sans-serif;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
 }
 
 * {
+  box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+}
+
+*:focus-visible {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #b8ebff;
+  color: #4b4b4b;
+}
+
+html,
+body,
+#__next {
+  min-height: 100%;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+@layer components {
+  .duo-card {
+    border: 2px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface);
+    box-shadow: 0 2px 0 var(--color-border);
+  }
+
+  .duo-muted-card {
+    border: 2px solid var(--color-border);
+    border-radius: 16px;
+    background: var(--color-surface-raised);
+  }
+
+  .duo-button {
+    position: relative;
+    display: inline-flex;
+    min-height: 48px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 14px;
+    padding: 0 20px;
+    font-size: 14px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition:
+      transform 100ms ease,
+      box-shadow 100ms ease,
+      filter 100ms ease;
+    user-select: none;
+  }
+
+  .duo-button:not(:disabled):active {
+    transform: translateY(3px);
+  }
+
+  .duo-button-green {
+  --duo-slab: #58a700;
+  background: #58cc02;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #58a700;
+}
+
+.duo-button-blue {
+  --duo-slab: #1899d6;
+  background: #1cb0f6;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #1899d6;
+}
+
+.duo-button-red {
+  --duo-slab: #ea2b2b;
+  background: #ff4b4b;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #ea2b2b;
+}
+
+.duo-button-gold {
+  --duo-slab: #e5b400;
+  background: #ffc800;
+  color: #4b4b4b;
+  box-shadow: 0 4px 0 #e5b400;
+}
+
+.duo-button-neutral {
+  --duo-slab: #afafaf;
+  background: #f7f7f7;
+  color: #4b4b4b;
+  box-shadow: 0 4px 0 #afafaf;
+}
+
+.dark .duo-button-neutral {
+  --duo-slab: #292929;
+  background: #414141;
+  color: #ffffff;
+  box-shadow: 0 4px 0 #292929;
+}
+
+  .duo-button:disabled {
+    background: #e5e5e5;
+    color: #afafaf;
+    box-shadow: none;
+    transform: none;
+  }
+
+  .dark .duo-button:disabled {
+    background: #414141;
+    color: #888888;
+  }
+
+  .duo-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #afafaf transparent;
+  }
+
+  .duo-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .duo-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .duo-scrollbar::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: #afafaf;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --page-gutter: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
 }
