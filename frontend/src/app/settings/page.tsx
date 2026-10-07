@@ -51,27 +51,25 @@ export default function SettingsPage() {
             </div>
 
             <button
-              type="button"
-              role="switch"
-              aria-checked={isDark}
-              aria-label="Toggle dark mode"
-              onClick={toggleTheme}
-              className={[
-                "relative h-8 w-14 shrink-0 rounded-full border-2 transition-colors",
-                isDark
-                  ? "border-duo-green bg-duo-green"
-                  : "border-duo-border bg-duo-cardHover",
-              ].join(" ")}
-            >
-              <span
-                className={[
-                  "absolute top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform",
-                  isDark
-                    ? "translate-x-6"
-                    : "translate-x-1",
-                ].join(" ")}
-              />
-            </button>
+  type="button"
+  role="switch"
+  aria-checked={isDark}
+  aria-label="Toggle dark mode"
+  onClick={toggleTheme}
+  className={[
+  "relative h-7 w-12 shrink-0 rounded-full border-2 transition-colors duration-200",
+  isDark
+    ? "border-duo-green bg-duo-green"
+    : "border-duo-border bg-duo-cardHover",
+].join(" ")}
+>
+  <span
+    className={[
+  "absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow-sm transition-transform duration-200",
+  isDark ? "translate-x-5" : "translate-x-0",
+].join(" ")}
+  />
+</button>
           </div>
 
           {settings.map(([label, value]) => (

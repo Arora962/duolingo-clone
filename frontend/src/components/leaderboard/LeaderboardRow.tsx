@@ -135,18 +135,22 @@ export default function LeaderboardRow({
         </span>
 
         <span
-          className="min-w-0 flex-1 truncate text-left text-[17px] font-bold leading-5"
-          style={{ color: you ? LEAGUE_GREEN : "#F1F7FB" }}
-        >
-          {entry.name}
-        </span>
+  className={[
+    "min-w-0 flex-1 truncate text-left text-[17px] font-bold leading-5",
+    you ? "text-[#79B933]" : "text-duo-text",
+  ].join(" ")}
+>
+  {entry.name}
+</span>
 
         <span
-          className="mr-2.5 shrink-0 text-right text-[17px] font-medium leading-5"
-          style={{ color: you ? LEAGUE_GREEN : "#DCE6EC" }}
-        >
-          {entry.xp_total} XP
-        </span>
+  className={[
+    "mr-2.5 shrink-0 text-right text-[17px] font-medium leading-5",
+    you ? "text-[#79B933]" : "text-duo-body",
+  ].join(" ")}
+>
+  {entry.xp_total} XP
+</span>
       </div>
     </li>
   );
