@@ -1,41 +1,29 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import type { NextPage } from "next";
+import { useLearner } from "~/store/useLearner";
 
-type Me = {
-  id: number;
-  username: string;
-  xp: number;
-  streak: number;
-  hearts: number;
-};
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-
+// Temporary smoke-test page: proves the API client, types and store work.
 const Home: NextPage = () => {
-  const [me, setMe] = useState<Me | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { me, error, refresh } = useLearner();
 
   useEffect(() => {
-    fetch(`${API_URL}/api/me`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`Backend returned ${res.status}`);
-        return res.json() as Promise<Me>;
-      })
-      .then(setMe)
-      .catch((e: Error) => setError(e.message));
-  }, []);
+    refresh();
+  }, [refresh]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4">
-      <h1 className="text-4xl font-bold text-[#58cc02]">Duolingo Clone</h1>
-      {error && <p className="text-red-500">Error: {error}</p>}
+      <h1 className="text-4xl font-extrabold text-feather">duolingo</h1>
+      {error && <p className="text-cardinal">Error: {error}</p>}
       {!me && !error && <p>Loading...</p>}
       {me && (
         <p className="text-lg">
-          Hi {me.username}! 🔥 {me.streak} day streak · ⭐ {me.xp} XP · ❤️{" "}
-          {me.hearts} hearts
+          Hi {me.display_name}! 🔥 {me.current_streak} · ⚡ {me.total_xp} XP · ❤️{" "}
+          {me.hearts} · 💎 {me.gems}
         </p>
       )}
+      <button className="rounded-2xl bg-feather px-8 py-3 font-extrabold uppercase tracking-wide text-white shadow-btn-green active:translate-y-1 active:shadow-none">
+        Continue
+      </button>
     </main>
   );
 };
