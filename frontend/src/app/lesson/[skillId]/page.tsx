@@ -73,6 +73,7 @@ export default function LessonPage() {
   const [outOfHearts, setOutOfHearts] = useState(false);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [answerError, setAnswerError] = useState<string | null>(null);
 
   // Guards against a double submit for one exercise — match_pairs auto-submits
   // from an effect, and React may re-run effects in development StrictMode.
@@ -160,19 +161,68 @@ export default function LessonPage() {
   );
 
   /** The single entry point every exercise type calls when it's submitted. */
-  const handleAnswer = useCallback((isCorrect: boolean) => {
-    if (!acceptingAnswer.current) return;
-    acceptingAnswer.current = false;
-
-    setLastCorrect(isCorrect);
-    if (isCorrect) {
-      setCorrectCount((count) => count + 1);
-    } else {
-      setMistakeCount((count) => count + 1);
-      setHearts((current) => Math.max(0, current - 1));
+  const handleAnswer = useCallback(
+  async (isCorrect: boolean) => {
+    if (
+      !acceptingAnswer.current ||
+      !exercise ||
+      !run
+    ) {
+      return;
     }
+
+    acceptingAnswer.current = false;
+    setAnswerError(null);
+
+    if (isCorrect) {
+      setLastCorrect(true);
+      setCorrectCount((count) => count + 1);
+      setPhase("feedback");
+      return;
+    }
+
+    /*
+     * Normal lessons have a concrete lesson attempt id, so persist the
+     * heart loss immediately. Legendary runs are keyed by skill_id and do
+     * not use the normal lesson-attempt endpoint, so Legendary keeps its
+     * mistake accounting in the existing completion flow.
+     */
+    if (run.mode === "lesson") {
+      try {
+        const nextHearts = await api.recordMistake(
+          run.data.lesson_id,
+          exercise.id,
+        );
+
+        setHearts(nextHearts.hearts);
+
+        if (nextHearts.hearts <= 0) {
+          setOutOfHearts(true);
+        }
+
+        await refresh();
+      } catch (err) {
+        /*
+         * The answer was not persisted, so allow the learner to retry.
+         */
+        acceptingAnswer.current = true;
+
+        setAnswerError(
+          err instanceof Error
+            ? err.message
+            : "Couldn't save the mistake.",
+        );
+
+        return;
+      }
+    }
+
+    setLastCorrect(false);
+    setMistakeCount((count) => count + 1);
     setPhase("feedback");
-  }, []);
+  },
+  [exercise, refresh, run],
+);
 
   const handleContinue = () => {
     if (isLastExercise) {
@@ -275,7 +325,18 @@ export default function LessonPage() {
             </p>
           )
         )}
-
+        {answerError && (
+          <div className="mb-4 rounded-2xl border-2 border-duo-red/40 bg-duo-redSoft px-4 py-3 text-sm font-bold text-duo-red">
+            {answerError}{" "}
+            <button
+              type="button"
+              onClick={() => void handleAnswer(false)}
+              className="underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
         {submitError && (
           <div className="mb-4 rounded-2xl border-2 border-duo-red/40 bg-duo-redSoft px-4 py-3 text-sm font-bold text-duo-red">
             {submitError}{" "}

@@ -65,7 +65,12 @@ const ITEMS: NavItem[] = [
   { label: "Quests", href: "/quests", icon: "nav-quests" },
   { label: "Shop", href: "/shop", icon: "nav-shop" },
   { label: "Profile", href: "/profile", onMobile: true },
-  { label: "More", icon: "nav-more", onMobile: true },
+  {
+  label: "More",
+  href: "/settings",
+  icon: "nav-more",
+  onMobile: true,
+},
 ];
 
 export default function Sidebar() {

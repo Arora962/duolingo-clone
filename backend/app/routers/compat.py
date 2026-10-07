@@ -23,6 +23,7 @@ from app.schemas.compat import (
     LegendaryResult,
     LegendaryStart,
     LessonCompleteBody,
+    LessonMistakeBody,
     LessonResult,
     LessonStart,
     UserMe,
@@ -92,6 +93,21 @@ def start_lesson(
     db.commit()
     return result
 
+@router.post("/api/lesson/{attempt_id}/mistake", response_model=HeartsState)
+def record_mistake(
+    attempt_id: int,
+    body: LessonMistakeBody,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    result = compat.record_mistake(
+        db,
+        user,
+        attempt_id,
+        body.exercise_id,
+    )
+    db.commit()
+    return result
 
 @router.post("/api/lesson/{attempt_id}/complete", response_model=LessonResult)
 def complete_lesson(

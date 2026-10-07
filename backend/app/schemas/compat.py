@@ -68,6 +68,10 @@ class LessonCompleteBody(BaseModel):
     mistake_count: int
 
 
+class LessonMistakeBody(BaseModel):
+    exercise_id: int
+
+
 class LessonResult(BaseModel):
     xp_earned: int
     xp_total: int

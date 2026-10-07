@@ -5,9 +5,7 @@ import AppChrome from "@/components/shared/AppChrome";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { UserProvider } from "@/components/shared/UserProvider";
 
-// Next.js processes this stylesheet import at build time; TypeScript does not
-// provide declarations for CSS modules in every configuration.
-// @ts-ignore -- handled by Next.js' CSS pipeline
+
 import "./globals.css";
 
 // Duolingo's own typeface is proprietary; Nunito is the closest free rounded

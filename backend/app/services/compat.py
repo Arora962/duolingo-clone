@@ -532,38 +532,112 @@ def _record_adapter_attempt(
             selectinload(LessonAttempt.lesson)
             .selectinload(Lesson.exercises)
             .selectinload(Exercise.accepted_answers),
+            selectinload(LessonAttempt.answers),
         )
     )
+
     if attempt is None:
-        api_error(404, "ATTEMPT_NOT_FOUND", "Attempt not found.")
+        api_error(
+            404,
+            "ATTEMPT_NOT_FOUND",
+            "Attempt not found.",
+        )
+
     if attempt.status != AttemptStatus.IN_PROGRESS:
-        api_error(409, "ATTEMPT_NOT_ACTIVE", "This lesson attempt is no longer active.")
+        api_error(
+            409,
+            "ATTEMPT_NOT_ACTIVE",
+            "This lesson attempt is no longer active.",
+        )
 
     lesson = attempt.lesson
     total = len(lesson.exercises)
-    if correct_count < 0 or mistake_count < 0 or correct_count + mistake_count != total:
+
+    if (
+        correct_count < 0
+        or mistake_count < 0
+        or correct_count + mistake_count != total
+    ):
         api_error(
             422,
             "INVALID_LESSON_RESULT",
             "correct_count + mistake_count must equal the lesson exercise count.",
         )
+
     if total == 0:
-        api_error(409, "LESSON_NOT_CONFIGURED", "This lesson has no exercises.")
+        api_error(
+            409,
+            "LESSON_NOT_CONFIGURED",
+            "This lesson has no exercises.",
+        )
+
+    existing_answers = list(attempt.answers)
+
+    # A wrong answer may already have been persisted immediately by the
+    # compatibility endpoint used by the frontend.
+    existing_wrong = sum(
+        not answer.is_correct
+        for answer in existing_answers
+    )
+
+    if existing_wrong > mistake_count:
+        api_error(
+            422,
+            "INVALID_LESSON_RESULT",
+            "The reported mistake count is lower than the mistakes already recorded.",
+        )
+
+    answered_ids = {
+        answer.exercise_id
+        for answer in existing_answers
+    }
+
+    existing_correct_ids = {
+        answer.exercise_id
+        for answer in existing_answers
+        if answer.is_correct
+    }
+
+    unanswered = [
+        exercise
+        for exercise in lesson.exercises
+        if exercise.id not in answered_ids
+    ]
+
+    missing_mistakes = mistake_count - existing_wrong
+
+    if missing_mistakes > len(unanswered):
+        api_error(
+            422,
+            "INVALID_LESSON_RESULT",
+            "The reported mistakes cannot be reconciled with this lesson.",
+        )
+
+    # Never allow a direct API caller to finish a lesson by spending the last
+    # available heart. The browser UI also stops at zero hearts.
+    heart_status = current_hearts_status(db, user.id)
+
+    if (
+        missing_mistakes > 0
+        and missing_mistakes >= int(heart_status["hearts"])
+    ):
+        api_error(
+            409,
+            "OUT_OF_HEARTS",
+            "You do not have enough hearts to finish this lesson.",
+            next_heart_in_seconds=heart_status["next_heart_in_seconds"],
+        )
 
     now = now_utc(db)
-    # The compatibility player has no visible practice timer. Reset the
-    # practice attempt's expiry anchor so the existing timed-practice rule
-    # remains intact for the native API while this adapter behaves like the UI.
+
     if lesson.skill.skill_type == SkillType.PRACTICE:
         attempt.started_at = now
-    rows = _correct_rows(lesson, attempt.id, now)
-    db.add_all(rows)
 
-    # The supplied UI grades locally and only sends aggregate counts. Record
-    # one extra incorrect row per mistake so the existing heart ledger and
-    # perfect-lesson logic still reflect the learner's reported mistakes.
-    for index in range(mistake_count):
-        exercise = lesson.exercises[index % total]
+    # If the frontend already persisted one or more mistakes, only create the
+    # missing mistake rows here. This prevents a heart being charged twice.
+    mistake_targets = unanswered[:missing_mistakes]
+
+    for exercise in mistake_targets:
         db.add(
             AttemptAnswer(
                 attempt_id=attempt.id,
@@ -574,6 +648,7 @@ def _record_adapter_attempt(
                 exercise=exercise,
             )
         )
+
         db.add(
             HeartEvent(
                 user_id=user.id,
@@ -584,9 +659,135 @@ def _record_adapter_attempt(
             )
         )
 
+    # The adapter grades the answer counts sent by the browser. The native
+    # lesson service still needs a solved/correct row for every exercise, so
+    # add those rows where a correct row does not already exist.
+    correct_rows = _correct_rows(
+        lesson,
+        attempt.id,
+        now,
+    )
+
+    db.add_all(
+        row
+        for row in correct_rows
+        if row.exercise_id not in existing_correct_ids
+    )
+
     db.flush()
+
+    # Force the relationship to be reloaded by lesson_service.complete().
+    db.expire(attempt, ["answers"])
+
     return attempt
 
+def record_mistake(
+    db: Session,
+    user: User,
+    attempt_id: int,
+    exercise_id: int,
+) -> dict:
+    """Persist one incorrect answer immediately so heart loss survives refreshes."""
+    attempt = db.scalar(
+        select(LessonAttempt)
+        .where(
+            LessonAttempt.id == attempt_id,
+            LessonAttempt.user_id == user.id,
+        )
+        .options(
+            selectinload(LessonAttempt.lesson)
+            .selectinload(Lesson.exercises),
+            selectinload(LessonAttempt.answers),
+        )
+    )
+
+    if attempt is None:
+        api_error(
+            404,
+            "ATTEMPT_NOT_FOUND",
+            "Attempt not found.",
+        )
+
+    if attempt.status != AttemptStatus.IN_PROGRESS:
+        api_error(
+            409,
+            "ATTEMPT_NOT_ACTIVE",
+            "This lesson attempt is no longer active.",
+        )
+
+    exercise = next(
+        (
+            item
+            for item in attempt.lesson.exercises
+            if item.id == exercise_id
+        ),
+        None,
+    )
+
+    if exercise is None:
+        api_error(
+            422,
+            "INVALID_EXERCISE",
+            "The exercise does not belong to this lesson.",
+        )
+
+    if any(
+        answer.exercise_id == exercise_id
+        for answer in attempt.answers
+    ):
+        api_error(
+            409,
+            "EXERCISE_ALREADY_ANSWERED",
+            "This exercise has already been answered.",
+        )
+
+    status = current_hearts_status(
+        db,
+        user.id,
+    )
+
+    if status["hearts"] <= 0:
+        api_error(
+            409,
+            "OUT_OF_HEARTS",
+            "You have no hearts available.",
+            next_heart_in_seconds=status["next_heart_in_seconds"],
+        )
+
+    now = now_utc(db)
+
+    db.add(
+        AttemptAnswer(
+            attempt_id=attempt.id,
+            exercise_id=exercise.id,
+            submitted_answer=_wrong_submission(exercise),
+            is_correct=False,
+            answered_at=now,
+            exercise=exercise,
+        )
+    )
+
+    db.add(
+        HeartEvent(
+            user_id=user.id,
+            event_type=HeartEventType.LOST,
+            delta=-1,
+            attempt_id=attempt.id,
+            created_at=now,
+        )
+    )
+
+    db.flush()
+
+    updated = current_hearts_status(
+        db,
+        user.id,
+    )
+
+    return {
+        "hearts": int(updated["hearts"]),
+        "max_hearts": int(updated["max_hearts"]),
+    }
 
 def complete_lesson(
     db: Session,
