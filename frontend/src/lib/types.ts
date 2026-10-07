@@ -1,257 +1,199 @@
-// Types mirror the FastAPI response models in backend/app/schemas/.
+// Mirrors backend/app/schemas.py one-for-one. If a field changes there, change
+// it here — these two files are the contract between the halves of the app.
 
-export type CourseSummary = {
+export type ExerciseType =
+  | "multiple_choice"
+  | "translate"
+  | "match_pairs"
+  | "fill_blank"
+  | "type_answer";
+
+export type SkillStatus = "locked" | "available" | "completed";
+
+/** Which artwork a path node shows. Mirrors backend SkillKind. */
+export type SkillKind = "lesson" | "story" | "chest" | "practice" | "review";
+
+export interface UserProfile {
   id: number;
-  language_code: string;
   name: string;
-  flag_emoji: string;
-};
-
-export type Me = {
-  id: number;
-  username: string;
-  display_name: string;
-  avatar_url: string | null;
-  gems: number;
-  total_xp: number;
-  current_streak: number;
-  streak_active_today: boolean;
+  xp_total: number;
+  streak_count: number;
   hearts: number;
   max_hearts: number;
-  next_heart_in_seconds: number | null;
-  daily_goal_xp: number;
-  xp_today: number;
-  daily_goal_met: boolean;
-  current_course: CourseSummary | null;
-};
-
-// ---------- Path ----------
-export type NodeState = "LOCKED" | "AVAILABLE" | "COMPLETED";
-export type SkillType = "LESSON" | "TREASURE" | "PRACTICE";
-
-export type LessonNode = {
-  id: number;
-  position: number;
-  xp_reward: number;
-  state: NodeState;
-};
-
-export type SkillNode = {
-  id: number;
-  position: number;
-  title: string;
-  skill_type: SkillType;
-  icon_type: string;
-  state: NodeState;
-  is_current: boolean;
-  lessons_total: number;
+  gems: number;
+  last_activity_date: string | null;
+  /** Seconds until the whole bar refills; null when already full. */
+  hearts_refill_in_seconds: number | null;
   lessons_completed: number;
-  progress_ratio: number;
-  crowns: number;
-  crowns_max: number;
-  next_lesson_id: number | null;
-  lessons: LessonNode[];
-};
+  /** XP the server awards, so labels never hardcode a number that could drift. */
+  xp_per_lesson: number;
+  xp_per_practice: number;
+  /** Legendary's reward, length and mistake allowance. */
+  legendary_xp: number;
+  /** Gems a treasure chest pays out. */
+  leaderboard_unlock_lessons: number;
+  leaderboard_unlocked: boolean;
+}
 
-export type UnitNode = {
+export interface SkillNodeData {
   id: number;
-  position: number;
   title: string;
-  description: string;
-  color_bg: string;
-  color_border: string;
-  skills_completed: number;
-  skills_total: number;
-  skills: SkillNode[];
-};
+  order_index: number;
+  status: SkillStatus;
+  kind: SkillKind;
+  total_lessons: number;
+  lessons_completed: number;
+  progress: number; // 0.0 -> 1.0
+  /** True once this skill's Legendary challenge has been beaten. */
+  is_legendary: boolean;
+}
 
-export type PathResponse = { course: CourseSummary; units: UnitNode[] };
-
-// ---------- Lessons ----------
-export type ExerciseOption = {
+export interface UnitData {
   id: number;
-  text: string;
-  image_emoji: string | null;
-};
+  title: string;
+  order_index: number;
+  skills: SkillNodeData[];
+}
 
-type ExerciseBase = {
-  id: number;
-  position: number;
+/** A unit's guidebook, derived server-side from that unit's own exercises. */
+export interface Guidebook {
+  unit_number: number;
+  /** Unit title without its category prefix — the phrase-list heading. */
+  topic: string;
+  key_phrases: string[];
+}
+
+export interface CoursePath {
+  units: UnitData[];
+  current_skill_id: number | null;
+}
+
+// --- Exercise payloads (CLAUDE.md §5) -------------------------------------
+export interface MultipleChoicePayload {
+  question: string;
+  options: string[];
+  correct: string;
+}
+
+export interface TranslatePayload {
   prompt: string;
-  source_text: string | null;
-  hint: string | null;
-  audio_url: string | null;
-};
+  word_bank: string[];
+  correct_sequence: string[];
+}
 
-export type MultipleChoiceExercise = ExerciseBase & {
-  type: "MULTIPLE_CHOICE";
-  options: ExerciseOption[];
-};
-// Fill-in-the-blank is either option-based or free typing.
-export type FillInBlankExercise = ExerciseBase & {
-  type: "FILL_IN_BLANK";
-  options?: ExerciseOption[];
-  requires_typing?: true;
-};
-export type TranslateWordBankExercise = ExerciseBase & {
-  type: "TRANSLATE_WORD_BANK";
-  tiles: { id: number; text: string }[];
-};
-export type MatchPairsExercise = ExerciseBase & {
-  type: "MATCH_PAIRS";
-  left: { id: number; text: string }[];
-  right: { id: number; text: string }[];
-};
-export type TypeAnswerExercise = ExerciseBase & { type: "TYPE_ANSWER" };
+export interface MatchPairsPayload {
+  pairs: { left: string; right: string }[];
+}
 
+export interface FillBlankPayload {
+  sentence: string;
+  options: string[];
+  correct: string;
+}
+
+export interface TypeAnswerPayload {
+  prompt: string;
+  correct: string;
+}
+
+export type ExercisePayload =
+  | MultipleChoicePayload
+  | TranslatePayload
+  | MatchPairsPayload
+  | FillBlankPayload
+  | TypeAnswerPayload;
+
+// A discriminated union on `type` — narrowing this is what lets the lesson
+// player pick the right component with no casts.
 export type Exercise =
-  | MultipleChoiceExercise
-  | FillInBlankExercise
-  | TranslateWordBankExercise
-  | MatchPairsExercise
-  | TypeAnswerExercise;
+  | { id: number; type: "multiple_choice"; payload: MultipleChoicePayload }
+  | { id: number; type: "translate"; payload: TranslatePayload }
+  | { id: number; type: "match_pairs"; payload: MatchPairsPayload }
+  | { id: number; type: "fill_blank"; payload: FillBlankPayload }
+  | { id: number; type: "type_answer"; payload: TypeAnswerPayload };
 
-export type StartLessonResponse = {
-  attempt_id: number;
+export interface LessonStart {
   lesson_id: number;
-  skill: { id: number; title: string; skill_type: SkillType };
-  mode: "STANDARD" | "TIMED_PRACTICE";
-  xp_reward: number;
+  skill_title: string;
+  is_practice: boolean;
   hearts: number;
-  max_hearts: number;
-  time_limit_seconds: number | null;
-  expires_at: string | null;
-  total_exercises: number;
   exercises: Exercise[];
-};
+}
 
-// Send only the fields your exercise type needs.
-export type AnswerPayload =
-  | { exercise_id: number; option_id: number } // multiple choice / fill blank
-  | { exercise_id: number; option_ids: number[] } // word bank (ordered)
-  | { exercise_id: number; text: string } // type answer / typed blank
-  | { exercise_id: number; left_option_id: number; right_option_id: number }; // one pair
+export interface LessonCompleteBody {
+  correct_count: number;
+  mistake_count: number;
+}
 
-export type AnswerResult = {
-  is_correct: boolean;
-  correct_answer: string | null;
-  speak_text: string | null;
-  speak_lang: string | null;
-  audio_url: string | null;
-  exercise_solved: boolean;
-  solved_exercises: number;
-  total_exercises: number;
-  progress_percent: number;
-  all_exercises_solved: boolean;
-  hearts: number;
-  next_heart_in_seconds: number | null;
-  lesson_failed: boolean;
-  failure_reason: string | null;
-};
-
-export type CompleteResult = {
+export interface LessonResult {
   xp_earned: number;
-  total_xp: number;
-  accuracy_percent: number;
-  time_spent_seconds: number;
-  streak_before: number;
-  streak_after: number;
-  streak_extended: boolean;
-  xp_today: number;
-  daily_goal_xp: number;
-  goal_just_met: boolean;
+  xp_total: number;
   hearts: number;
-  skill: {
-    id: number;
-    state: NodeState;
-    lessons_completed: number;
-    lessons_total: number;
-    crowns: number;
-  };
-  skill_just_completed: boolean;
-  next_skill_unlocked: { id: number; title: string } | null;
-  newly_unlocked_achievements: {
-    code: string;
-    name: string;
-    description: string;
-    icon: string;
-  }[];
-};
+  hearts_lost: number;
+  streak_count: number;
+  accuracy: number;
+  is_perfect: boolean;
+  /** True when this was a replay of an already-finished skill (half XP). */
+  skill_completed: boolean;
+  unlocked_skill_title: string | null;
+}
 
-export type TreasureResponse = { gems_awarded: number; gems: number };
+/**
+ * A Legendary challenge. Keyed on the skill rather than a lesson, because it
+ * draws its questions from every lesson in the skill.
+ */
+export interface LegendaryStart {
+  skill_title: string;
+  hearts: number;
+  /** Mistakes allowed while still earning the badge. */
+  mistake_allowance: number;
+  exercises: Exercise[];
+}
 
-// ---------- Hearts ----------
-export type HeartsResponse = {
+export interface LegendaryResult {
+  xp_earned: number;
+  xp_total: number;
+  hearts: number;
+  hearts_lost: number;
+  streak_count: number;
+  accuracy: number;
+  is_perfect: boolean;
+  /** False when the run went over the allowance: XP paid, badge withheld. */
+  legendary_earned: boolean;
+  was_already_legendary: boolean;
+  mistake_allowance: number;
+}
+
+/** Opening a unit's treasure chest. `claimed` is false if there was nothing to open. */
+export interface ChestOpenResult {
+  claimed: boolean;
+  unlocked_skill_title: string | null;
+}
+
+export interface HeartsState {
   hearts: number;
   max_hearts: number;
-  next_heart_in_seconds: number | null;
-  refill_cost_gems: number;
-  gems: number;
-};
-export type RefillMethod = "GEMS" | "PRACTICE";
-export type RefillResponse = HeartsResponse & { method: RefillMethod };
+}
 
-// ---------- Leaderboard / Profile / Settings ----------
-export type LeaderboardEntry = {
+export interface LeaderboardEntry {
   rank: number;
   user_id: number;
-  username: string;
-  display_name: string;
-  avatar_url: string | null;
-  weekly_xp: number;
-  is_current_user: boolean;
-  is_bot: boolean;
-};
-export type LeaderboardResponse = {
-  period_start: string;
-  period_end: string;
-  days_remaining: number;
-  current_user_rank: number | null;
-  entries: LeaderboardEntry[];
-};
-
-export type AchievementProgress = {
-  code: string;
   name: string;
-  description: string;
-  icon: string;
-  metric: string;
-  threshold: number;
-  current_value: number;
-  earned: boolean;
-  unlocked_at: string | null;
-};
-export type ProfileResponse = {
-  user: {
-    id: number;
-    username: string;
-    display_name: string;
-    avatar_url: string | null;
-    joined_at: string;
-  };
-  stats: {
-    total_xp: number;
-    current_streak: number;
-    longest_streak: number;
-    lessons_completed: number;
-    perfect_lessons: number;
-    xp_today: number;
-    daily_goal_xp: number;
-    gems: number;
-  };
-  course: CourseSummary | null;
-  achievements: AchievementProgress[];
-};
+  xp_total: number;
+  is_current_user: boolean;
+}
 
-export type Settings = {
-  daily_goal_xp: 10 | 20 | 30 | 50;
-  sound_effects_enabled: boolean;
-  dark_mode_enabled: boolean;
-  reminders_enabled: boolean;
-};
+/** The league table plus the header the reference shows above it. */
+export interface Leaderboard {
+  league: string;
+  /** Tiers drawn in the header; the first is current, the rest locked. */
+  /** Ranks at or above this advance — the PROMOTION ZONE divider sits under it. */
+  promotion_rank: number;
+  /** Whole days until the league week closes. */
+  days_remaining: number;
+  entries: LeaderboardEntry[];
+}
 
-export type Clock = {
-  time_offset_days: number;
-  simulated_now: string;
-  simulated_today: string;
-};
+export interface Explanation {
+  explanation: string;
+}

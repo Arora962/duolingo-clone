@@ -1,88 +1,115 @@
-import { useMemo } from "react";
-import { Button3D } from "~/components/ui/Button3D";
-import { playAudioOrSpeak } from "~/lib/speech";
+"use client";
 
-const PRAISE = ["Nicely done!", "Great job!", "Excellent!", "You got it!"];
+import { useState } from "react";
 
-type Props = {
-  correct: boolean;
-  correctAnswer: string | null;
-  speakText: string | null;
-  speakLang: string | null;
-  speechEnabled: boolean;
+import DuoButton from "@/components/shared/DuoButton";
+import { CheckIcon, CrossIcon, SparkleIcon } from "@/components/shared/icons";
+
+interface FeedbackBarProps {
+  isCorrect: boolean;
+  correctAnswer: string;
+  isLastExercise: boolean;
   onContinue: () => void;
-  finalStep?: boolean;
-};
+  /**
+   * Optional AI explanation fetcher. When omitted the "Why?" button is hidden,
+   * so the core lesson loop never depends on it (§2).
+   */
+  onExplain?: () => Promise<string>;
+}
 
-export function FeedbackBar({
-  correct,
+/** Fixed to the bottom of the viewport and slides up on appear (§8). */
+export default function FeedbackBar({
+  isCorrect,
   correctAnswer,
-  speakText,
-  speakLang,
-  speechEnabled,
+  isLastExercise,
   onContinue,
-  finalStep = false,
-}: Props) {
-  const praise = useMemo(
-    () => PRAISE[Math.floor(Math.random() * PRAISE.length)],
-    [],
-  );
+  onExplain,
+}: FeedbackBarProps) {
+  const [explanation, setExplanation] = useState<string | null>(null);
+  const [loadingExplanation, setLoadingExplanation] = useState(false);
+
+  const requestExplanation = async () => {
+    if (!onExplain) return;
+    setLoadingExplanation(true);
+    try {
+      setExplanation(await onExplain());
+    } catch {
+      setExplanation("Couldn't load an explanation right now.");
+    } finally {
+      setLoadingExplanation(false);
+    }
+  };
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={[
-        "animate-duo-slide-up fixed inset-x-0 bottom-0 z-50 border-t-2 px-4",
-        "pb-[max(1rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-4px_18px_rgba(0,0,0,0.08)]",
-        correct
-          ? "border-[var(--color-green-text)] bg-[var(--color-green-surface)]"
-          : "border-[var(--color-red-text)] bg-[var(--color-red-surface)]",
+        "fixed bottom-0 left-0 right-0 z-20 animate-slide-up border-t-2",
+        isCorrect
+          ? "border-duo-green/40 bg-duo-greenSoft"
+          : "border-duo-red/40 bg-duo-redSoft",
       ].join(" ")}
     >
-      <div className="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-2xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-start gap-3">
-          <div
+          <span
             className={[
-              "mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xl font-black text-white",
-              correct ? "bg-[var(--color-green-text)]" : "bg-[var(--color-red-text)]",
+              "flex h-11 w-11 shrink-0 items-center justify-center rounded-full",
+              isCorrect
+                ? "bg-duo-green text-white"
+                : "bg-duo-red text-white",
             ].join(" ")}
           >
-            {correct ? "✓" : "×"}
-          </div>
-          <div>
+            {isCorrect ? (
+              <CheckIcon className="h-6 w-6" />
+            ) : (
+              <CrossIcon className="h-6 w-6" />
+            )}
+          </span>
+
+          <div className="min-w-0">
             <p
               className={[
-                "text-xl font-black",
-                correct ? "text-[var(--color-green-text)]" : "text-[var(--color-red-text)]",
+                "text-xl font-extrabold",
+                isCorrect ? "text-duo-green" : "text-duo-red",
               ].join(" ")}
             >
-              {correct ? praise : "Not quite"}
+              {isCorrect ? "Nice!" : "Correct answer:"}
             </p>
-            {!correct && correctAnswer && (
-              <p className="mt-0.5 text-sm font-extrabold text-[var(--color-text)]">
-                Correct answer: <span className="font-black">{correctAnswer}</span>
-              </p>
+
+            {!isCorrect && (
+              <p className="font-bold text-duo-text">{correctAnswer}</p>
             )}
-            {correct && speakText && (
+
+            {!isCorrect && onExplain && !explanation && (
               <button
                 type="button"
-                onClick={() =>
-                  playAudioOrSpeak(speakText, speakText, speakLang, speechEnabled)
-                }
-                className="mt-0.5 text-sm font-extrabold text-[var(--color-text)] underline"
+                onClick={() => void requestExplanation()}
+                disabled={loadingExplanation}
+                className="mt-1 inline-flex items-center gap-1 text-sm font-extrabold uppercase tracking-wide text-duo-blue disabled:text-duo-muted"
               >
-                🔊 Hear it again
+                <SparkleIcon className="h-4 w-4" />
+                {loadingExplanation ? "Thinking…" : "Why?"}
               </button>
+            )}
+
+            {explanation && (
+              <p className="mt-2 max-w-lg text-sm text-duo-muted">
+                {explanation}
+              </p>
             )}
           </div>
         </div>
 
-        <Button3D
-          tone={correct ? "green" : "red"}
-          className="min-w-[150px]"
+        <DuoButton
+          variant={isCorrect ? "green" : "red"}
+          size="lg"
           onClick={onContinue}
+          className="w-full sm:w-auto sm:min-w-[190px]"
         >
-          {correct ? (finalStep ? "Finish" : "Continue") : "Continue"}
-        </Button3D>
+          {isLastExercise ? "Finish" : "Continue"}
+        </DuoButton>
       </div>
     </div>
   );

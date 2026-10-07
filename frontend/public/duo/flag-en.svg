@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="70" height="54" viewBox="0 0 70 54" role="img" aria-label="Spanish flag">
+  <rect width="70" height="54" rx="7" fill="#AA151B"/>
+  <rect y="13.5" width="70" height="27" fill="#F1BF00"/>
+  <g transform="translate(17 19)" fill="#AA151B">
+    <rect x="0" y="0" width="3" height="16" rx="1"/>
+    <rect x="3" y="3" width="8" height="2" rx="1"/>
+    <rect x="3" y="11" width="8" height="2" rx="1"/>
+  </g>
+</svg>

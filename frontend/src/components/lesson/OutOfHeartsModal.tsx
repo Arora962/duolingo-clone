@@ -1,60 +1,74 @@
-import { Modal } from "~/components/ui/Modal";
-import { Button3D } from "~/components/ui/Button3D";
-import { useCountdown, formatCountdown } from "~/hooks/useCountdown";
-import type { HeartsResponse } from "~/lib/types";
+"use client";
 
-type Props = {
-  hearts: HeartsResponse | null;
-  busy: boolean;
-  onRefillGems: () => void;
-  onPractice: () => void;
-  onExit: () => void;
-};
+import { useState } from "react";
 
-export function OutOfHeartsModal({
-  hearts,
-  busy,
-  onRefillGems,
-  onPractice,
-  onExit,
-}: Props) {
-  const cost = hearts?.refill_cost_gems ?? 100;
-  const gems = hearts?.gems ?? 0;
-  const canRefill = gems >= cost;
-  const regen = useCountdown(hearts?.next_heart_in_seconds ?? 0);
+import DuoButton from "@/components/shared/DuoButton";
+import { HeartIcon } from "@/components/shared/icons";
+
+/**
+ * Blocks the lesson when hearts hit zero. Refilling is mocked (§10) — it just
+ * calls POST /api/hearts/refill and lets the learner carry on where they were.
+ */
+export default function OutOfHeartsModal({
+  onRefill,
+  onQuit,
+}: {
+  onRefill: () => Promise<void>;
+  onQuit: () => void;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const refill = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await onRefill();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Refill failed");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   return (
-    <Modal open title="Out of hearts" onClose={onExit} widthClassName="max-w-md">
-      <div className="text-center">
-        <div className="text-6xl" aria-hidden>💔</div>
-        <p className="mt-3 font-extrabold text-[var(--color-text-muted)]">
-          You can refill with gems, practice to earn one heart, or wait for regeneration.
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Out of hearts"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-duo-bg/90 px-4 backdrop-blur-sm"
+    >
+      <div className="w-full max-w-sm animate-pop-in rounded-3xl border-2 border-duo-border bg-duo-card p-6 text-center">
+        <div className="mb-4 flex justify-center gap-1">
+          {[0, 1, 2, 3, 4].map((index) => (
+            <HeartIcon key={index} className="h-7 w-7 text-duo-border" />
+          ))}
+        </div>
+
+        <h2 className="mb-2 text-2xl text-duo-red">You&apos;re out of hearts!</h2>
+        <p className="mb-6 text-sm text-duo-muted">
+          Refill to keep going, or quit and come back later — hearts regenerate
+          on their own over time.
         </p>
 
-        <div className="mt-5 rounded-2xl bg-[var(--color-surface-raised)] p-4">
-          <p className="font-black text-[var(--color-text)]">💎 {gems} gems</p>
-          <p className="mt-1 text-sm font-extrabold text-[var(--color-text-muted)]">
-            Full refill: {cost} gems
-          </p>
-          {regen > 0 && (
-            <p className="mt-2 text-sm font-black text-[var(--color-red-text)]">
-              Next heart in {formatCountdown(regen)}
-            </p>
-          )}
-        </div>
+        {error && (
+          <p className="mb-4 text-sm font-bold text-duo-red">{error}</p>
+        )}
 
-        <div className="mt-5 grid gap-3">
-          <Button3D tone="blue" fullWidth disabled={busy || !canRefill} onClick={onRefillGems}>
-            {busy ? "Refilling…" : canRefill ? `Refill for ${cost} gems` : "Not enough gems"}
-          </Button3D>
-          <Button3D tone="green" fullWidth disabled={busy} onClick={onPractice}>
-            Practice to earn a heart
-          </Button3D>
-          <Button3D tone="neutral" fullWidth onClick={onExit}>
-            No thanks
-          </Button3D>
+        <div className="space-y-3">
+          <DuoButton
+            fullWidth
+            size="lg"
+            disabled={busy}
+            onClick={() => void refill()}
+          >
+            {busy ? "Refilling…" : "Refill hearts"}
+          </DuoButton>
+          <DuoButton variant="outline" fullWidth onClick={onQuit}>
+            Quit lesson
+          </DuoButton>
         </div>
       </div>
-    </Modal>
+    </div>
   );
 }
