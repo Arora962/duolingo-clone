@@ -10,28 +10,28 @@ const config: Config = {
         duo: {
           green: "#58CC02",
           greenDark: "#46A302", // the "3D pressed" shadow under green buttons
-          greenSoft: "#202F36", // green-tinted panel on the dark background
+          greenSoft: "rgb(var(--duo-green-soft) / <alpha-value>)", // green-tinted panel on the dark background
           blue: "#1CB0F6",
           blueDark: "#1899D6",
           pink: "#FF4B8C",
           pinkDark: "#D63C73",
           red: "#FF4B4B",
           redDark: "#E03131",
-          redSoft: "#3A222A",
+          redSoft: "rgb(var(--duo-red-soft) / <alpha-value>)",
           gold: "#FFC800",
           purple: "#CE82FF",
-          bg: "#131F24", // near-black app background
-          card: "#1B2B32",
-          cardHover: "#22343C",
-          border: "#37464F",
-          text: "#F1F7FB",
-          muted: "#8FA3AD",
+          bg: "rgb(var(--duo-bg) / <alpha-value>)",
+          card: "rgb(var(--duo-card) / <alpha-value>)",
+          cardHover: "rgb(var(--duo-card-hover) / <alpha-value>)",
+          border: "rgb(var(--duo-border) / <alpha-value>)",
+          text: "rgb(var(--duo-text) / <alpha-value>)",
+          muted: "rgb(var(--duo-muted) / <alpha-value>)",
 
           // Right-rail tokens, taken from the computed styles of the real
           // /learn page (see rightbar.css in the repo root).
-          body: "#DCE6EC", // card body copy
-          link: "#49C0F8", // "VIEW ALL" / "REMOVE ADS" style links
-          footer: "#52656D", // footer link row
+          body: "rgb(var(--duo-body) / <alpha-value>)",
+          link: "rgb(var(--duo-link) / <alpha-value>)",
+          footer: "rgb(var(--duo-footer) / <alpha-value>)",
           streak: "#FFAB33", // streak count sits in orange, not white
           streakSoft: "#A9661E", // muted amber behind the streak popover's header
           gemText: "#49C0F8",

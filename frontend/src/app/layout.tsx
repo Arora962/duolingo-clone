@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Nunito } from "next/font/google";
 
 import AppChrome from "@/components/shared/AppChrome";
+import { ThemeProvider } from "@/components/shared/ThemeProvider";
 import { ToastProvider } from "@/components/shared/ToastProvider";
 import { UserProvider } from "@/components/shared/UserProvider";
-
 
 import "./globals.css";
 
@@ -33,11 +33,13 @@ export default function RootLayout({
   return (
     <html lang="en" className={nunito.variable}>
       <body className="font-sans">
-        <ToastProvider>
-          <UserProvider>
-            <AppChrome>{children}</AppChrome>
-          </UserProvider>
-        </ToastProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <UserProvider>
+              <AppChrome>{children}</AppChrome>
+            </UserProvider>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
