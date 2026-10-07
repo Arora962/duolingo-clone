@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
+from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
@@ -241,18 +242,6 @@ def _compat_path(db: Session, user: User) -> dict:
     if raw is None:
         api_error(409, "COURSE_NOT_SELECTED", "The learner has no current course.")
 
-    completed = completed_lesson_ids(db, user.id)
-    claimed_treasures = {
-        skill["id"]
-        for unit in raw["units"]
-        for skill in unit["skills"]
-        if skill["skill_type"] == SkillType.TREASURE.value
-        and _has_setting(db, _setting_key("chest", user.id, skill["id"]))
-    }
-
-    # Normal lesson progression comes from the project's existing path builder.
-    # We only adjust special skills that have no lesson rows in the frozen seed.
-    prior_open = True
     output_units = []
     current_skill_id = None
 
@@ -264,35 +253,17 @@ def _compat_path(db: Session, user: User) -> dict:
                 "TREASURE": "chest",
                 "PRACTICE": "practice",
             }.get(skill["skill_type"], "lesson")
-
-            if skill["skill_type"] == SkillType.TREASURE.value:
-                is_done = skill["id"] in claimed_treasures
-                status = "completed" if is_done else ("available" if prior_open else "locked")
+            status = skill["state"].lower()  # COMPLETED/AVAILABLE/LOCKED, same as native
+            if kind == "chest":
                 lessons_total = 0
                 lessons_completed = 0
-                progress = 1.0 if is_done else 0.0
-            elif skill["skill_type"] == SkillType.PRACTICE.value:
-                # Practice is an auxiliary replay node. The seed supplies a real
-                # practice lesson, but the path should not block the next unit on
-                # whether that replay has been completed. Once the preceding
-                # treasure is claimed, show the node as completed/available-for-
-                # replay so its popover offers Practice rather than START.
-                status = "completed" if prior_open else "locked"
-                lessons_total = skill["lessons_total"]
-                lessons_completed = skill["lessons_completed"]
                 progress = 1.0 if status == "completed" else 0.0
             else:
                 lessons_total = skill["lessons_total"]
                 lessons_completed = skill["lessons_completed"]
-                if lessons_total and lessons_completed >= lessons_total:
-                    status = "completed"
-                else:
-                    status = "available" if prior_open else "locked"
-                progress = (
-                    lessons_completed / lessons_total if lessons_total else 0.0
-                )
+                progress = lessons_completed / lessons_total if lessons_total else 0.0
 
-            if status == "available" and current_skill_id is None and kind == "lesson":
+            if status == "available" and current_skill_id is None:
                 current_skill_id = skill["id"]
 
             output_skills.append(
@@ -310,15 +281,6 @@ def _compat_path(db: Session, user: User) -> dict:
                     ),
                 }
             )
-
-            # A claimed treasure and a zero-content practice node both allow the
-            # following node to be reached in the visual path.
-            if status == "completed":
-                prior_open = True
-            elif status == "available":
-                prior_open = False
-            else:
-                prior_open = False
 
         output_units.append(
             {
@@ -664,7 +626,7 @@ def complete_lesson(
         else None
     )
     return {
-        "xp_earned": int(result["xp_earned"]),
+        "xp_earned": int(attempt.xp_earned),
         "xp_total": total_xp(db, user.id),
         "hearts": int(result["hearts"]),
         "hearts_lost": int(result["hearts_lost"]),
@@ -767,12 +729,13 @@ def open_chest(db: Session, user: User, skill_id: int) -> dict:
     if state is None or state["status"] == "locked":
         api_error(403, "SKILL_LOCKED", "This treasure is locked.")
 
-    key = _setting_key("chest", user.id, skill_id)
-    if _has_setting(db, key):
-        return {"claimed": False, "unlocked_skill_title": None}
-
-    user.gems += 30
-    _set_setting(db, key)
+    try:
+        lesson_service.claim_treasure(db, user, skill_id)
+    except HTTPException as exc:
+        detail = exc.detail if isinstance(exc.detail, dict) else {}
+        if detail.get("code") == "ALREADY_CLAIMED":
+            return {"claimed": False, "unlocked_skill_title": None}
+        raise
 
     # Find the next visual lesson skill, if one exists, for the reward toast.
     units = path["units"]

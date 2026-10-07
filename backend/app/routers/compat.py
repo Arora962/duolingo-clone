@@ -82,7 +82,7 @@ def guidebook(
     return compat.guidebook(db, user, unit_id)
 
 
-@router.post("/api/lesson/{skill_id}/start", response_model=LessonStart)
+@router.get("/api/lesson/{skill_id}/start", response_model=LessonStart)
 def start_lesson(
     skill_id: int,
     db: Session = Depends(get_db),
@@ -105,7 +105,7 @@ def complete_lesson(
     return result
 
 
-@router.post("/api/lesson/{skill_id}/legendary", response_model=LegendaryStart)
+@router.get("/api/lesson/{skill_id}/legendary", response_model=LegendaryStart)
 def start_legendary(
     skill_id: int,
     db: Session = Depends(get_db),
