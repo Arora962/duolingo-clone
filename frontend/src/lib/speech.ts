@@ -1,73 +1,60 @@
-type SpeakOptions = {
-  enabled?: boolean;
-  lang?: string;
-  rate?: number;
-  pitch?: number;
-};
+// Text-to-speech, via the browser's built-in Web Speech API.
+//
+// Chosen because it needs no backend route, no API key and no network call —
+// the voices ship with the OS, so audio keeps working offline like the rest of
+// the app. There is no audio in the seed data to play instead: the course is
+// text, so the alternative would have been recording 250 clips.
+//
+// Note this is speech *output*. CLAUDE.md §10 rules out speech *recognition* and
+// pronunciation grading — listening to the learner — which is a different
+// feature and still isn't built.
 
-export function speechAvailable(): boolean {
+/** Slightly under normal pace; a learner is hearing the sentence for the first time. */
+const RATE = 0.95;
+const LANG = "en-US";
+
+export function isSpeechSupported(): boolean {
+  return typeof window !== "undefined" && "speechSynthesis" in window;
+}
+
+/**
+ * Voices load asynchronously in Chrome — the first `getVoices()` after page load
+ * usually returns an empty list and fills in later. Rather than block on it, we
+ * read whatever is available at speak time and fall back to the browser default,
+ * which is already an English voice on an English-locale system.
+ */
+function pickVoice(): SpeechSynthesisVoice | null {
+  const voices = window.speechSynthesis.getVoices();
+  if (voices.length === 0) return null;
   return (
-    typeof window !== "undefined" &&
-    "speechSynthesis" in window &&
-    "SpeechSynthesisUtterance" in window
+    voices.find((v) => v.lang === LANG && v.localService) ??
+    voices.find((v) => v.lang === LANG) ??
+    voices.find((v) => v.lang.startsWith("en")) ??
+    null
   );
 }
 
-export function stopSpeaking(): void {
-  if (!speechAvailable()) {
-    return;
-  }
+/**
+ * Speak `text`, cancelling anything already speaking.
+ *
+ * Cancelling first is what makes a second press *restart* rather than queue —
+ * `speechSynthesis.speak` appends to a queue by default, so without this a
+ * double tap would say the sentence twice in a row.
+ */
+export function speak(text: string): void {
+  if (!isSpeechSupported() || !text.trim()) return;
 
   window.speechSynthesis.cancel();
-}
-
-export function speak(
-  text: string,
-  options: SpeakOptions = {},
-): void {
-  if (!options.enabled || !text.trim() || !speechAvailable()) {
-    return;
-  }
-
-  stopSpeaking();
 
   const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = options.lang ?? "en-US";
-  utterance.rate = options.rate ?? 0.9;
-  utterance.pitch = options.pitch ?? 1;
-
+  utterance.lang = LANG;
+  utterance.rate = RATE;
+  const voice = pickVoice();
+  if (voice) utterance.voice = voice;
   window.speechSynthesis.speak(utterance);
 }
 
-export function playAudioOrSpeak(
-  audioUrl: string | null,
-  text: string | null,
-  lang: string | null,
-  enabled = true,
-): void {
-  if (!enabled) {
-    return;
-  }
-
-  if (audioUrl && typeof window !== "undefined") {
-    const audio = new Audio(audioUrl);
-
-    void audio.play().catch(() => {
-      if (text) {
-        speak(text, {
-          enabled: true,
-          lang: lang ?? "en-US",
-        });
-      }
-    });
-
-    return;
-  }
-
-  if (text) {
-    speak(text, {
-      enabled: true,
-      lang: lang ?? "en-US",
-    });
-  }
+export function cancelSpeech(): void {
+  if (!isSpeechSupported()) return;
+  window.speechSynthesis.cancel();
 }

@@ -1,98 +1,118 @@
+// Thin fetch wrappers around the backend routes (CLAUDE.md §6). One function
+// per endpoint; no business logic lives here — the server owns game state.
+
 import type {
-  AnswerPayload,
-  AnswerResult,
-  Clock,
-  CompleteResult,
-  HeartsResponse,
-  LeaderboardResponse,
-  Me,
-  PathResponse,
-  ProfileResponse,
-  RefillMethod,
-  RefillResponse,
-  Settings,
-  StartLessonResponse,
-  TreasureResponse,
-} from "~/lib/types";
+  ChestOpenResult,
+  CoursePath,
+  Explanation,
+  Guidebook,
+  HeartsState,
+  Leaderboard,
+  LegendaryResult,
+  LegendaryStart,
+  LessonCompleteBody,
+  LessonResult,
+  LessonStart,
+  UserProfile,
+} from "./types";
 
-const ORIGIN = (
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
-).replace(/\/$/, "");
-const BASE = `${ORIGIN}/api`;
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
-/** Backend errors look like {detail: {code, message, ...extra}}. */
+/** Carries the HTTP status so callers can branch (e.g. 423 => skill locked). */
 export class ApiError extends Error {
-  status: number;
-  code: string;
-  data: Record<string, unknown>;
-
-  constructor(status: number, code: string, message: string, data = {}) {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
     super(message);
-    this.status = status;
-    this.code = code;
-    this.data = data;
+    this.name = "ApiError";
   }
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  let res: Response;
+  let response: Response;
   try {
-    res = await fetch(`${BASE}${path}`, {
+    response = await fetch(`${BASE_URL}${path}`, {
+      cache: "no-store",
+      headers: { "Content-Type": "application/json" },
       ...init,
-      headers: { "Content-Type": "application/json", ...init?.headers },
     });
   } catch {
-    throw new ApiError(0, "NETWORK_ERROR", "Cannot reach the server.");
+    throw new ApiError(
+      0,
+      `Can't reach the API at ${BASE_URL}. Is the backend running?`,
+    );
   }
 
-  if (!res.ok) {
-    const body = await res.json().catch(() => null);
-    const detail = body?.detail;
-    if (detail && typeof detail === "object" && "code" in detail) {
-      const { code, message, ...rest } = detail;
-      throw new ApiError(res.status, code, message ?? code, rest);
+  if (!response.ok) {
+    // FastAPI puts human-readable messages in `detail`.
+    let message = response.statusText || `Request failed (${response.status})`;
+    try {
+      const body = await response.json();
+      if (typeof body?.detail === "string") message = body.detail;
+    } catch {
+      // Non-JSON error body — keep the status text.
     }
-    throw new ApiError(res.status, "HTTP_ERROR", `Request failed (${res.status})`);
+    throw new ApiError(response.status, message);
   }
-  return (await res.json()) as T;
+
+  return (await response.json()) as T;
 }
 
-const post = <T>(path: string, body?: unknown) =>
-  request<T>(path, {
-    method: "POST",
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-
 export const api = {
-  me: () => request<Me>("/me"),
-  path: () => request<PathResponse | null>("/path"),
-  profile: () => request<ProfileResponse>("/profile"),
-  leaderboard: () => request<LeaderboardResponse>("/leaderboard"),
+  me: () => request<UserProfile>("/api/user/me"),
 
-  settings: () => request<Settings>("/settings"),
-  updateSettings: (patch: Partial<Settings>) =>
-    request<Settings>("/settings", {
-      method: "PATCH",
-      body: JSON.stringify(patch),
+  coursePath: () => request<CoursePath>("/api/course/path"),
+
+  /** Skip ahead to a unit. Returns the refreshed path. */
+  jumpToUnit: (unitId: number) =>
+    request<CoursePath>(`/api/course/units/${unitId}/jump`, { method: "POST" }),
+
+  /**
+   * Open a reached treasure chest. Safe to call repeatedly — a chest that's
+   * already open answers 200 with `claimed: false` rather than erroring.
+   */
+  openChest: (skillId: number) =>
+    request<ChestOpenResult>(`/api/course/chest/${skillId}/open`, {
+      method: "POST",
     }),
 
-  hearts: () => request<HeartsResponse>("/hearts"),
-  refillHearts: (method: RefillMethod) =>
-    post<RefillResponse>("/hearts/refill", { method }),
+  /** A unit's key phrases and vocabulary. Static content — no gate. */
+  guidebook: (unitId: number) =>
+    request<Guidebook>(`/api/course/units/${unitId}/guidebook`),
 
-  startLesson: (lessonId: number) =>
-    post<StartLessonResponse>(`/lessons/${lessonId}/start`),
-  answer: (attemptId: number, payload: AnswerPayload) =>
-    post<AnswerResult>(`/attempts/${attemptId}/answer`, payload),
-  complete: (attemptId: number) =>
-    post<CompleteResult>(`/attempts/${attemptId}/complete`),
-  abandon: (attemptId: number) =>
-    post<{ status: "ABANDONED" }>(`/attempts/${attemptId}/abandon`),
-  claimTreasure: (skillId: number) =>
-    post<TreasureResponse>(`/skills/${skillId}/claim-treasure`),
+  startLesson: (skillId: number) =>
+    request<LessonStart>(`/api/lesson/${skillId}/start`),
 
-  // Dev-only simulated clock (only exists when ENABLE_DEV_ENDPOINTS=true)
-  clock: () => request<Clock>("/dev/clock"),
-  advanceClock: (days = 1) => post<Clock>("/dev/clock/advance", { days }),
-  resetClock: () => post<Clock>("/dev/clock/reset"),
+  completeLesson: (lessonId: number, body: LessonCompleteBody) =>
+    request<LessonResult>(`/api/lesson/${lessonId}/complete`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  /** The Legendary challenge for a completed skill. 423 until it's completed. */
+  startLegendary: (skillId: number) =>
+    request<LegendaryStart>(`/api/lesson/${skillId}/legendary`),
+
+  completeLegendary: (skillId: number, body: LessonCompleteBody) =>
+    request<LegendaryResult>(`/api/lesson/${skillId}/legendary/complete`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  refillHearts: () =>
+    request<HeartsState>("/api/hearts/refill", { method: "POST" }),
+
+  leaderboard: () => request<Leaderboard>("/api/leaderboard"),
+
+  /** Optional AI hint. Falls back to a static message server-side. */
+  explain: (body: {
+    question: string;
+    correct_answer: string;
+    user_answer?: string;
+  }) =>
+    request<Explanation>("/api/exercise/explain", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
 };
