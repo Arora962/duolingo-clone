@@ -15,13 +15,9 @@ import type { UserProfile } from "@/lib/types";
 /**
  * The stats strip at the top of the rail.
  *
- * Order is fixed by CLAUDE.md §8 — flag (course) → streak → gems → hearts —
- * which is also what the reference markup does. Each value takes its icon's
- * colour, as in the real UI.
- *
- * Every tile opens a card on hover; the cards live in `StatPopovers`, so this
- * component stays a row of four triggers. The outer tiles align their cards
- * inwards so neither runs off the edge of the 368px rail.
+ * Course, XP, streak, gems, and hearts are shown as separate stats so the
+ * desktop rail matches the same information hierarchy as the responsive top
+ * bar. Each stat opens its existing popover on hover/focus.
  */
 export default function StatsRow({
   user,
@@ -34,14 +30,24 @@ export default function StatsRow({
   return (
     <div className="mb-2 flex items-center justify-between">
       <HoverCard label="Your courses" align="left" trigger={
-        <StatPill
-          icon={<DuoAsset name="flag" />}
-          value={user.xp_total}
-          label="Total XP"
-          valueClassName="text-duo-text text-base"
-        />
+        <div className="flex items-center rounded-xl py-1 pl-[10px] pr-2">
+          <DuoAsset name="flag" />
+        </div>
       }>
         <CoursesPopover />
+      </HoverCard>
+
+      <HoverCard label="Your XP" trigger={
+        <StatPill
+          icon={<DuoAsset name="questBolt" height={25} />}
+          value={user.xp_total}
+          label="XP"
+          valueClassName="text-duo-blue"
+        />
+      }>
+        <div className="px-4 py-3 text-sm font-bold text-duo-text">
+          Total XP: {user.xp_total}
+        </div>
       </HoverCard>
 
       {/* The streak card's top band is amber, so its pointer matches it. */}

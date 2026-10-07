@@ -85,7 +85,7 @@ export default function LeaderboardRow({
           ) : (
             <span
               className="text-[17px] font-bold leading-5"
-              style={{ color: promoted ? LEAGUE_GREEN : "#F1F7FB" }}
+              style={{ color: promoted ? LEAGUE_GREEN : "rgb(var(--duo-text))" }}
             >
               {entry.rank}
             </span>
@@ -102,7 +102,7 @@ export default function LeaderboardRow({
           {you ? (
             <span
               className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-dashed text-[22.08px] font-bold"
-              style={{ borderColor: LEAGUE_GREEN, color: "#D3E3C3" }}
+              style={{ borderColor: LEAGUE_GREEN, color: "rgb(var(--duo-text))" }}
             >
               {entry.name.slice(0, 1).toUpperCase()}
             </span>

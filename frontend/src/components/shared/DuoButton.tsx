@@ -17,7 +17,7 @@ const VARIANTS: Record<Variant, string> = {
   super: "bg-duo-super text-white hover:brightness-110",
   ghost: "bg-transparent text-duo-muted hover:bg-duo-card",
   outline:
-    "bg-transparent text-duo-blue border-2 border-duo-border shadow-[0_4px_0_#37464F] hover:bg-duo-card active:translate-y-[3px] active:shadow-[0_1px_0_#37464F]",
+    "bg-transparent text-duo-blue border-2 border-duo-border shadow-[0_4px_0_rgb(var(--duo-border))] hover:bg-duo-card active:translate-y-[3px] active:shadow-[0_1px_0_rgb(var(--duo-border))]",
 };
 
 const SIZES = {

@@ -4,13 +4,32 @@ These models intentionally describe the contract consumed by the supplied
 frontend. They do not alter the project's frozen database schema.
 """
 
+from datetime import datetime
+
 from pydantic import BaseModel
+
+
+class AchievementProgress(BaseModel):
+    """Progress and unlock state for one achievement."""
+
+    code: str
+    name: str
+    description: str
+    icon: str
+    metric: str
+    threshold: int
+    current_value: int
+    earned: bool
+    unlocked_at: datetime | None
 
 
 class UserMe(BaseModel):
     id: int
     name: str
     xp_total: int
+    xp_today: int
+    daily_goal_xp: int
+    daily_goal_met: bool
     streak_count: int
     hearts: int
     max_hearts: int
@@ -23,6 +42,7 @@ class UserMe(BaseModel):
     legendary_xp: int
     leaderboard_unlock_lessons: int
     leaderboard_unlocked: bool
+    achievements: list[AchievementProgress]
 
 
 class SkillNode(BaseModel):

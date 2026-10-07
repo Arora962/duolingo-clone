@@ -13,6 +13,7 @@
 
   --duo-body: 220 230 236;
   --duo-link: 73 192 248;
+  --duo-footer: 82 101 109;
 }
 
 html[data-theme="light"] {
@@ -30,6 +31,7 @@ html[data-theme="light"] {
 
   --duo-body: 75 75 75;
   --duo-link: 28 176 246;
+  --duo-footer: 82 101 109;
 }
 
 @tailwind base;
