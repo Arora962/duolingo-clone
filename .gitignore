@@ -17,3 +17,5 @@ venv/
 # IDE
 .vscode/
 .idea/
+# Keep the committed templates
+!.env.example
