@@ -116,17 +116,15 @@ export interface Quest {
  * server for the same reason — it's the number `complete_lesson` really pays.
  */
 export function deriveDailyQuests(
-  user: Pick<UserProfile, "last_activity_date" | "xp_per_lesson">,
-  today: string = utcTodayISO(),
+  user: Pick<UserProfile, "xp_today" | "daily_goal_xp" | "daily_goal_met">,
 ): Quest[] {
-  const practisedToday = user.last_activity_date === today;
   return [
     {
       id: "earn-xp",
       kind: "xp",
-      label: `Earn ${user.xp_per_lesson} XP`,
-      current: practisedToday ? user.xp_per_lesson : 0,
-      target: user.xp_per_lesson,
+      label: `Earn ${user.daily_goal_xp} XP`,
+      current: Math.min(user.xp_today, user.daily_goal_xp),
+      target: user.daily_goal_xp,
     },
   ];
 }

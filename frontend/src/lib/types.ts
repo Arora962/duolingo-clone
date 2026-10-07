@@ -13,10 +13,25 @@ export type SkillStatus = "locked" | "available" | "completed";
 /** Which artwork a path node shows. Mirrors backend SkillKind. */
 export type SkillKind = "lesson" | "story" | "chest" | "practice" | "review";
 
+export interface AchievementProgress {
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  metric: string;
+  threshold: number;
+  current_value: number;
+  earned: boolean;
+  unlocked_at: string | null;
+}
+
 export interface UserProfile {
   id: number;
   name: string;
   xp_total: number;
+  xp_today: number;
+  daily_goal_xp: number;
+  daily_goal_met: boolean;
   streak_count: number;
   hearts: number;
   max_hearts: number;
@@ -33,6 +48,7 @@ export interface UserProfile {
   /** Gems a treasure chest pays out. */
   leaderboard_unlock_lessons: number;
   leaderboard_unlocked: boolean;
+  achievements: AchievementProgress[];
 }
 
 export interface SkillNodeData {

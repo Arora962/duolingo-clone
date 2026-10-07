@@ -333,6 +333,43 @@ export default function ProfilePage() {
             </div>
           ))}
         </div>
+                {/* Achievements */}
+        <h2 className="mb-4 mt-8 text-[22px] font-bold leading-tight">
+          Achievements
+        </h2>
+
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(user.achievements ?? []).map((achievement) => (
+            <div
+              key={achievement.code}
+              className={`rounded-2xl border-2 p-4 ${
+                achievement.earned
+                  ? "border-duo-green bg-duo-greenSoft"
+                  : "border-duo-border opacity-60"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-duo-card text-2xl">
+                  {achievement.icon}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="font-bold text-duo-text">
+                    {achievement.name}
+                  </p>
+
+                  <p className="text-sm text-duo-muted">
+                    {achievement.description}
+                  </p>
+
+                  <p className="mt-1 text-xs font-bold text-duo-muted">
+                    {achievement.current_value} / {achievement.threshold}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </RailLayout>
   );

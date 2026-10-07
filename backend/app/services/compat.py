@@ -13,6 +13,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.services.stats import daily_goal
+from app.services.achievements import get_achievement_progress
 from app.clock import now_utc
 from app.constants import MAX_HEARTS
 from app.enums import AttemptStatus, ExerciseType, HeartEventType, OptionSide, SkillType
@@ -299,10 +301,14 @@ def user_me(db: Session, user: User) -> dict:
     days = active_days(db, user.id)
     last = max(days).isoformat() if days else None
     completed_count = len(completed_lesson_ids(db, user.id))
+    goal, xp_today_value, goal_met = daily_goal(db, user.id)
     return {
         "id": user.id,
         "name": user.display_name,
         "xp_total": total_xp(db, user.id),
+        "xp_today": xp_today_value,
+        "daily_goal_xp": goal,
+        "daily_goal_met": goal_met,
         "streak_count": current_streak(db, user.id),
         "hearts": hearts["hearts"],
         "max_hearts": hearts["max_hearts"],
@@ -315,6 +321,7 @@ def user_me(db: Session, user: User) -> dict:
         "legendary_xp": LEGENDARY_XP,
         "leaderboard_unlock_lessons": LEADERBOARD_UNLOCK_LESSONS,
         "leaderboard_unlocked": completed_count >= LEADERBOARD_UNLOCK_LESSONS,
+        "achievements": get_achievement_progress(db, user.id),
     }
 
 

@@ -59,6 +59,12 @@ export default function TopBar({ className = "" }: { className?: string }) {
               tone="text-duo-streak"
             />
             <Stat
+              icon={<DuoAsset name="questBolt" height={25} />}
+              value={user.xp_total}
+              label="XP"
+              tone="text-duo-blue"
+            />
+            <Stat
               icon={<DuoAsset name="gem" height={25} />}
               value={user.gems}
               label="Gems"
